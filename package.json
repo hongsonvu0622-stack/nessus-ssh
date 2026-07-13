@@ -18,6 +18,13 @@
     "appId": "com.nexusssh.app",
     "productName": "NexusSSH",
     "npmRebuild": false,
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "vuhongson97",
+        "repo": "nessus-ssh"
+      }
+    ],
     "directories": {
       "output": "release",
       "buildResources": "build"
