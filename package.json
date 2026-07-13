@@ -4,6 +4,7 @@
   "description": "Premium macOS SSH, Serial & SFTP Manager (Termius Alternative)",
   "main": "electron-main.js",
   "scripts": {
+    "postinstall": "npm install --prefix client",
     "start": "node server/server.js",
     "dev": "concurrently \"node server/server.js\" \"npm run dev --prefix client\"",
     "electron": "concurrently \"node server/server.js\" \"npm run dev --prefix client\" \"sleep 3 && electron .\"",
