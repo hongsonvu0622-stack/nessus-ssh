@@ -21,7 +21,8 @@ function createWindow() {
     backgroundColor: '#0a0d14',
     webPreferences: {
       nodeIntegration: false,
-      contextIsolation: true
+      contextIsolation: true,
+      devTools: false
     }
   });
 
@@ -44,6 +45,17 @@ function createWindow() {
   } else {
     checkServer('http://localhost:5173');
   }
+
+  // Block DevTools shortcuts
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (
+      input.key === 'F12' ||
+      (input.control && input.shift && input.key.toLowerCase() === 'i') ||
+      (input.meta && input.alt && input.key.toLowerCase() === 'i')
+    ) {
+      event.preventDefault();
+    }
+  });
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);

@@ -94,7 +94,7 @@ class LocalPtyManager {
         });
 
         this.sessions.set(sessionId, { ptyProcess: proc, type: 'spawn' });
-        socket.emit('terminal:status', { sessionId, status: 'connected', message: `macOS Local Terminal (${shell})` });
+        socket.emit('terminal:status', { sessionId, status: 'connected', message: `Local Terminal (${shell})` });
       }
     } catch (err) {
       socket.emit('terminal:status', { sessionId, status: 'error', message: err.message });

@@ -35,7 +35,7 @@ build/*.icns
 Thumbs.db
 
 # Local private build scripts
-build-local.sh
+build-local.*
 quick-release.sh
 *.private.sh
 
