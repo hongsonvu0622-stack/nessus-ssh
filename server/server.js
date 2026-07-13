@@ -163,8 +163,9 @@ io.on('connection', (socket) => {
 
   socket.on('updater:install', async ({ fileName }) => {
     try {
+      socket.emit('updater:install-progress', { message: 'Đang giải nén & cài đặt bản cập nhật...' });
       await updater.installUpdateAndCleanup(fileName);
-      socket.emit('updater:install-started', { message: 'Đang mở bộ cài đặt và tự động dọn dẹp package cũ...' });
+      socket.emit('updater:install-success', { message: '✔ Cập nhật thành công! Ứng dụng đang khởi chạy lại...' });
     } catch (err) {
       socket.emit('updater:error', { message: 'Lỗi chạy bộ cài đặt: ' + err.message });
     }

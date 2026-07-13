@@ -8,6 +8,7 @@ export default function UpdateModal({ updateInfo, onClose, onCheckAgain }) {
   const [bgProgress, setBgProgress] = useState(null);
   const [bgReady, setBgReady] = useState(null);
   const [installing, setInstalling] = useState(false);
+  const [installSuccess, setInstallSuccess] = useState(false);
   const [bgError, setBgError] = useState(null);
 
   useEffect(() => {
@@ -19,30 +20,39 @@ export default function UpdateModal({ updateInfo, onClose, onCheckAgain }) {
       setBgProgress(null);
       setBgReady(data);
     };
-    const handleInstallStarted = () => {
+    const handleInstallProgress = () => {
       setInstalling(true);
+      setInstallSuccess(false);
+      setBgError(null);
+    };
+    const handleInstallSuccess = () => {
+      setInstalling(false);
+      setInstallSuccess(true);
       setTimeout(() => {
         if (typeof onClose === 'function') onClose();
-      }, 2000);
+      }, 3500);
     };
     const handleError = (data) => {
       setBgError(data.message);
       setBgProgress(null);
       setInstalling(false);
+      setInstallSuccess(false);
     };
 
     socket.on('updater:progress', handleProgress);
     socket.on('updater:ready', handleReady);
-    socket.on('updater:install-started', handleInstallStarted);
+    socket.on('updater:install-progress', handleInstallProgress);
+    socket.on('updater:install-success', handleInstallSuccess);
     socket.on('updater:error', handleError);
 
     return () => {
       socket.off('updater:progress', handleProgress);
       socket.off('updater:ready', handleReady);
-      socket.off('updater:install-started', handleInstallStarted);
+      socket.off('updater:install-progress', handleInstallProgress);
+      socket.off('updater:install-success', handleInstallSuccess);
       socket.off('updater:error', handleError);
     };
-  }, []);
+  }, [onClose]);
 
   if (!updateInfo) return null;
 
@@ -259,9 +269,32 @@ export default function UpdateModal({ updateInfo, onClose, onCheckAgain }) {
             borderRadius: '12px',
             padding: '14px 16px',
             fontSize: '13px',
-            color: '#e9d5ff'
+            color: '#e9d5ff',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px'
           }}>
-            🚀 {t('updateModal.installingMsg')}
+            <span>⏳</span>
+            <span>{t('updateModal.installingMsg')}</span>
+          </div>
+        )}
+
+        {/* Success notification */}
+        {installSuccess && (
+          <div style={{
+            background: 'rgba(16, 185, 129, 0.18)',
+            border: '1px solid rgba(16, 185, 129, 0.5)',
+            borderRadius: '12px',
+            padding: '14px 16px',
+            fontSize: '13px',
+            color: '#6ee7b7',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            fontWeight: 600
+          }}>
+            <span>🎉</span>
+            <span>{t('updateModal.installSuccessMsg')}</span>
           </div>
         )}
 
