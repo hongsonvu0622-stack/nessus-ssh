@@ -10,7 +10,10 @@ export const translations = {
       settings: 'Cài Đặt Hệ Thống',
       activeSessions: 'PHIÊN ĐANG MỞ',
       openLocalShell: 'Mở Shell Nội Bộ',
-      language: 'Ngôn ngữ (Language)'
+      language: 'Ngôn ngữ (Language)',
+      checkUpdate: '🔄 Kiểm tra cập nhật',
+      hasNewUpdate: '✨ Có bản cập nhật mới',
+      checkUpdateTitle: 'Kiểm tra phiên bản mới từ GitHub'
     },
     // HostList
     hostList: {
@@ -21,6 +24,8 @@ export const translations = {
       createGroupBtn: '+ Tạo Thư mục Nhóm',
       searchPlaceholder: 'Tìm kiếm máy chủ, IP, nhãn hoặc nhóm...',
       newConnection: 'Thêm Máy Chủ',
+      scanSerial: 'Quét Serial',
+      scanSerialTooltip: 'Quét tự động thiết bị USB / Serial console đang cắm',
       newGroup: 'Thêm Nhóm',
       serialConsole: 'Cổng Serial (USB/UART)',
       importConfig: 'Nhập ~/.ssh/config',
@@ -72,6 +77,98 @@ export const translations = {
     modals: {
       save: 'Lưu Cấu Hình',
       cancel: 'Hủy'
+    },
+    // Snippets
+    snippets: {
+      pageTitle: 'Command Snippets & Scripts',
+      pageSubTitle: 'Lưu trữ các lệnh thao tác thường dùng trên Linux SSH hoặc Cisco/Network Serial Console',
+      addNew: 'Thêm Snippet Mới',
+      titleLabel: 'Tên mô tả Snippet',
+      titlePlaceholder: 'ví dụ: Check Nginx Log',
+      categoryLabel: 'Phân loại (Category)',
+      commandLabel: 'Câu lệnh (Command)',
+      saveBtn: 'Lưu Snippet'
+    },
+    // Identity Manager
+    identity: {
+      pageTitle: 'Keychain & SSH Identities',
+      pageSubTitle: 'Quản lý, tạo mới và import khóa SSH (`~/.ssh`) để chọn trực tiếp khi đăng nhập máy chủ',
+      importKeyBtn: 'Import Khóa',
+      createKeyBtn: 'Tạo Khóa SSH Mới',
+      refreshBtn: 'Làm mới danh sách',
+      copyPubKey: 'Sao chép Public Key',
+      copiedPubKey: 'Đã sao chép Public Key',
+      scanning: 'Đang quét khóa SSH trong ~/.ssh...',
+      emptyMsg: 'Không tìm thấy Private Key nào trong thư mục ~/.ssh của bạn. Hãy bấm "Tạo Khóa SSH Mới"!',
+      genTitle: 'Tạo Khóa SSH Mới (`ssh-keygen`)',
+      keyFilename: 'Tên tệp khóa (lưu tại ~/.ssh/)',
+      cryptoAlgo: 'Thuật toán mã hóa',
+      comment: 'Ghi chú (Comment)',
+      genSubmit: 'Tạo Khóa Ngay',
+      genLoading: 'Đang tạo khóa...',
+      importTitle: 'Import Khóa Private Key vào Keychain (~/.ssh/)',
+      importFilename: 'Tên tệp lưu trong ~/.ssh/',
+      dragDropText: 'Kéo thả tệp Private Key vào đây hoặc Nhấp chọn từ máy',
+      dragDropSub: 'Hỗ trợ tệp OpenSSH / PEM (.pem, id_rsa, id_ed25519...)',
+      privateKeyContent: 'Nội dung Private Key (PEM/OpenSSH)',
+      publicKeyContent: 'Nội dung Public Key (.pub) - Không bắt buộc',
+      reviewTitle: 'Xem Trước Thông Tin Khóa (Review Before Import)',
+      importSubmit: 'Lưu Khóa',
+      importLoading: 'Đang lưu...',
+      deleteKey: 'Xóa Khóa',
+      deleteConfirmTitle: 'Xác Nhận Xóa Khóa SSH',
+      deleteConfirmDesc: 'Bạn có chắc chắn muốn xóa vĩnh viễn tệp khóa này khỏi thư mục ~/.ssh? Hành động này không thể hoàn tác.'
+    },
+    // Update Modal
+    updateModal: {
+      title: 'Cập Nhật Phần Mềm',
+      checking: 'Đang kiểm tra phiên bản mới...',
+      updateError: 'Lỗi kiểm tra cập nhật',
+      upToDate: 'Bạn đang sử dụng phiên bản mới nhất!',
+      currentVersion: 'Phiên bản hiện tại: ',
+      latestVersion: 'Mới nhất: ',
+      checkAgain: 'Kiểm tra lại',
+      releaseNotes: '📝 Ghi chú thay đổi',
+      close: 'Đóng',
+      downloadUpdate: 'Tải Về & Cập Nhật Ngay',
+      bgDownloadBtn: '⚡ Tải ngầm & Tự động cài đặt',
+      downloadingBg: 'Đang tải bản cập nhật ngầm...',
+      installNowBtn: '🚀 Cài đặt ngay & Tự dọn dẹp bộ cài',
+      installingMsg: 'Đang mở bộ cài đặt. Gói cài đặt sẽ tự động được xóa sau khi hoàn tất!',
+      externalDownload: 'Tải qua trình duyệt'
+    },
+    // Host Modal
+    hostModal: {
+      passphraseLabel: 'Passphrase mở khóa Private Key (Nếu có)',
+      passphrasePlaceholder: 'Mật khẩu mở khóa khóa SSH (để trống nếu hỏi khi kết nối hoặc không có)',
+      passphraseHint: '🔐 Nếu khóa SSH có Passphrase nhưng để trống, ứng dụng sẽ tự động hiện hộp thoại hỏi Passphrase khi kết nối',
+      scanningPorts: 'Đang quét...',
+      rescanPorts: 'Quét lại cổng'
+    },
+    serialModal: {
+      title: 'Quét Thiết Bị Serial (USB / UART / COM)',
+      subTitle: 'Cáp USB-to-Serial / Cisco Console Cable / COM Port / Arduino / IoT',
+      rescanTitle: 'Quét lại',
+      baudRateLabel: 'Mặc định Baud Rate cho kết nối:',
+      scanning: 'Đang quét cổng Serial (USB / COM / UART)...',
+      noPorts: 'Không tìm thấy cổng Serial nào đang kết nối. Hãy cắm cáp USB Console / COM port vào máy tính và bấm Refresh.',
+      connectNow: 'Kết nối ngay',
+      saveHost: '+ Lưu vào danh sách Host',
+      refresh: 'Làm mới',
+      baud: 'baud',
+      save: 'Lưu'
+    },
+    // App
+    app: {
+      checkNewUpdateBtn: 'Kiểm tra bản cập nhật mới',
+      checkingUpdate: '⏳ Đang kiểm tra phiên bản mới từ GitHub...',
+      latestVersionMsg: '✔ Bạn đang sử dụng phiên bản mới nhất.',
+      viewAndDownload: 'Xem chi tiết & Tải về',
+      autoCheckTitle: 'Tự động kiểm tra bản cập nhật khi khởi động ứng dụng (Auto-Check Updates)',
+      autoCheckDesc: 'Ứng dụng tự động thông báo khi có bản phát hành mới trên GitHub Releases.',
+      bannerClick: 'Nhấp để xem chi tiết và tải về',
+      settingsTitle: 'Cài Đặt & Cập Nhật Phần Mềm',
+      settingsSubTitle: 'Quản lý phiên bản, kiểm tra cập nhật mới và cấu hình hệ thống NexusSSH Pro.'
     }
   },
   en: {
@@ -85,7 +182,10 @@ export const translations = {
       settings: 'Settings',
       activeSessions: 'ACTIVE SESSIONS',
       openLocalShell: 'Open Local Shell',
-      language: 'Language'
+      language: 'Language',
+      checkUpdate: '🔄 Check for updates',
+      hasNewUpdate: '✨ New update available',
+      checkUpdateTitle: 'Check for new release on GitHub'
     },
     // HostList
     hostList: {
@@ -96,6 +196,8 @@ export const translations = {
       createGroupBtn: '+ New Group',
       searchPlaceholder: 'Search servers, IP, tags or groups...',
       newConnection: 'New Connection',
+      scanSerial: 'Scan Serial',
+      scanSerialTooltip: 'Auto-scan connected USB / Serial console devices',
       newGroup: 'New Group',
       serialConsole: 'Serial Console (UART)',
       importConfig: 'Import ~/.ssh/config',
@@ -147,6 +249,98 @@ export const translations = {
     modals: {
       save: 'Save Configuration',
       cancel: 'Cancel'
+    },
+    // Snippets
+    snippets: {
+      pageTitle: 'Command Snippets & Scripts',
+      pageSubTitle: 'Store frequently used Linux SSH commands or Cisco/Network Serial scripts',
+      addNew: 'Add New Snippet',
+      titleLabel: 'Snippet Title',
+      titlePlaceholder: 'e.g., Check Nginx Log',
+      categoryLabel: 'Category',
+      commandLabel: 'Command',
+      saveBtn: 'Save Snippet'
+    },
+    // Identity Manager
+    identity: {
+      pageTitle: 'Keychain & SSH Identities',
+      pageSubTitle: 'Manage, generate and import SSH keys (~/.ssh) for direct selection when connecting to servers',
+      importKeyBtn: 'Import Key',
+      createKeyBtn: 'New SSH Key',
+      refreshBtn: 'Refresh List',
+      copyPubKey: 'Copy Public Key',
+      copiedPubKey: 'Copied Public Key',
+      scanning: 'Scanning SSH keys in ~/.ssh...',
+      emptyMsg: 'No SSH private keys found in ~/.ssh. Click "New SSH Key" to create one!',
+      genTitle: 'Generate New SSH Key (ssh-keygen)',
+      keyFilename: 'Key filename (saved to ~/.ssh/)',
+      cryptoAlgo: 'Encryption Algorithm',
+      comment: 'Comment',
+      genSubmit: 'Generate Key',
+      genLoading: 'Generating key...',
+      importTitle: 'Import Private Key to Keychain (~/.ssh/)',
+      importFilename: 'Save file name in ~/.ssh/',
+      dragDropText: 'Drag & drop your Private Key file here or click to browse',
+      dragDropSub: 'Supports OpenSSH / PEM format (.pem, id_rsa, id_ed25519...)',
+      privateKeyContent: 'Private Key Content (PEM/OpenSSH)',
+      publicKeyContent: 'Public Key Content (.pub) - Optional',
+      reviewTitle: 'Review Key Details Before Import',
+      importSubmit: 'Save Key',
+      importLoading: 'Saving...',
+      deleteKey: 'Delete Key',
+      deleteConfirmTitle: 'Confirm Delete SSH Key',
+      deleteConfirmDesc: 'Are you sure you want to permanently delete this SSH key file from ~/.ssh? This action cannot be undone.'
+    },
+    // Update Modal
+    updateModal: {
+      title: 'Software Update',
+      checking: 'Checking for new release...',
+      updateError: 'Update check error',
+      upToDate: 'You are running the latest version!',
+      currentVersion: 'Current version: ',
+      latestVersion: 'Latest: ',
+      checkAgain: 'Check again',
+      releaseNotes: '📝 Release notes',
+      close: 'Close',
+      downloadUpdate: 'Download & Update Now',
+      bgDownloadBtn: '⚡ Background Download & Install',
+      downloadingBg: 'Downloading update in background...',
+      installNowBtn: '🚀 Install Now & Auto-Cleanup Package',
+      installingMsg: 'Launching installer. Package file will be automatically cleaned up!',
+      externalDownload: 'Browser Download'
+    },
+    // Host Modal
+    hostModal: {
+      passphraseLabel: 'SSH Key Passphrase (Optional)',
+      passphrasePlaceholder: 'Passphrase to decrypt private key (leave blank to prompt on connect)',
+      passphraseHint: '🔐 If the key requires a passphrase and left blank, you will be prompted securely when connecting',
+      scanningPorts: 'Scanning...',
+      rescanPorts: 'Rescan Ports'
+    },
+    serialModal: {
+      title: 'Scan Serial Devices (USB / UART / COM)',
+      subTitle: 'USB-to-Serial Cables / Cisco Console Cable / COM Port / Arduino / IoT',
+      rescanTitle: 'Rescan',
+      baudRateLabel: 'Default Baud Rate for connections:',
+      scanning: 'Scanning Serial ports (USB / COM / UART)...',
+      noPorts: 'No connected Serial ports found. Plug in your USB Console cable / COM port and click Refresh.',
+      connectNow: 'Connect Now',
+      saveHost: '+ Save to Host list',
+      refresh: 'Refresh',
+      baud: 'baud',
+      save: 'Save'
+    },
+    // App
+    app: {
+      checkNewUpdateBtn: 'Check for software updates',
+      checkingUpdate: '⏳ Checking for updates on GitHub...',
+      latestVersionMsg: '✔ You are running the latest version.',
+      viewAndDownload: 'View details & Download',
+      autoCheckTitle: 'Automatically check for updates on startup',
+      autoCheckDesc: 'Automatically notify when a new release is published on GitHub.',
+      bannerClick: 'Click to view details and download',
+      settingsTitle: 'Settings & Software Update',
+      settingsSubTitle: 'Manage version, check for updates and configure NexusSSH Pro system.'
     }
   }
 };

@@ -166,9 +166,29 @@ function importSshKey({ name, privateContent, publicContent }) {
   };
 }
 
+function deleteSshKey({ name }) {
+  if (!name || name.includes('..') || name.includes('/') || name.includes('\\')) {
+    throw new Error('Tên tệp khóa không hợp lệ.');
+  }
+
+  const sshDir = path.join(os.homedir(), '.ssh');
+  const fullPath = path.join(sshDir, name);
+  const pubPath = fullPath + '.pub';
+
+  if (fs.existsSync(fullPath)) {
+    fs.unlinkSync(fullPath);
+  }
+  if (fs.existsSync(pubPath)) {
+    fs.unlinkSync(pubPath);
+  }
+
+  return { success: true, deleted: name };
+}
+
 module.exports = {
   parseSshConfig,
   scanLocalSshKeys,
   generateSshKey,
-  importSshKey
+  importSshKey,
+  deleteSshKey
 };

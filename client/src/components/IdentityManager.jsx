@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { KeyRound, ShieldCheck, RefreshCw, Plus, Upload, Copy, Check, Eye, X } from 'lucide-react';
-import { fetchLocalKeys, generateSshKey, importSshKey } from '../services/socket';
+import { KeyRound, ShieldCheck, RefreshCw, Plus, Upload, Copy, Check, Eye, X, Trash2 } from 'lucide-react';
+import { fetchLocalKeys, generateSshKey, importSshKey, deleteSshKey } from '../services/socket';
+import { useI18n } from '../i18n/I18nContext.jsx';
 
 export default function IdentityManager() {
+  const { t } = useI18n();
   const [keys, setKeys] = useState([]);
   const [loading, setLoading] = useState(true);
   const [copiedKey, setCopiedKey] = useState(null);
+  const [deleteConfirmKey, setDeleteConfirmKey] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Generate modal state
   const [showGenModal, setShowGenModal] = useState(false);
@@ -126,24 +130,38 @@ export default function IdentityManager() {
     }
   };
 
+  const handleDeleteKey = async (key) => {
+    if (!key || !key.name) return;
+    setDeleting(true);
+    try {
+      await deleteSshKey(key.name);
+      setDeleteConfirmKey(null);
+      await loadKeys();
+    } catch (err) {
+      alert('Lỗi khi xóa khóa SSH: ' + err.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       <div style={{ padding: '24px 28px', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#fff' }}>
-            Keychain & SSH Identities
+            {t('identity.pageTitle')}
           </h1>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Quản lý, tạo mới và import khóa SSH (`~/.ssh`) để chọn trực tiếp khi đăng nhập máy chủ
+            {t('identity.pageSubTitle')}
           </p>
         </div>
 
         <div style={{ display: 'flex', gap: '10px' }}>
           <button onClick={() => { setFileMeta(null); setImportForm({ name: '', privateContent: '', publicContent: '' }); setShowImportModal(true); }} className="btn-secondary" style={{ fontSize: '13px' }}>
-            <Upload size={15} /> Import Khóa
+            <Upload size={15} /> {t('identity.importKeyBtn')}
           </button>
           <button onClick={() => setShowGenModal(true)} className="btn-primary" style={{ fontSize: '13px' }}>
-            <Plus size={16} /> Tạo Khóa SSH Mới
+            <Plus size={16} /> {t('identity.createKeyBtn')}
           </button>
         </div>
       </div>
@@ -151,17 +169,17 @@ export default function IdentityManager() {
       <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px' }}>
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
           <button onClick={loadKeys} className="btn-secondary" style={{ fontSize: '13px' }}>
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Làm mới danh sách
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> {t('identity.refreshBtn')}
           </button>
         </div>
 
         {loading ? (
           <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
-            Đang quét khóa SSH trong ~/.ssh...
+            {t('identity.scanning')}
           </div>
         ) : keys.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-muted)' }}>
-            Không tìm thấy Private Key nào trong thư mục ~/.ssh của bạn. Hãy bấm "Tạo Khóa SSH Mới"!
+            {t('identity.emptyMsg')}
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '16px' }}>
@@ -209,29 +227,45 @@ export default function IdentityManager() {
                   </div>
                 </div>
 
-                {key.pubContent && (
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                    <button
-                      onClick={() => handleCopyPub(key)}
-                      className="btn-secondary"
-                      style={{ flex: 1, fontSize: '12px', padding: '6px 12px' }}
-                    >
-                      {copiedKey === key.name ? (
-                        <><Check size={14} color="#10b981" /> Đã sao chép Public Key</>
-                      ) : (
-                        <><Copy size={14} /> Sao chép Public Key</>
-                      )}
-                    </button>
-                    <button
-                      onClick={() => setViewPubModal(key)}
-                      className="btn-secondary"
-                      title="Xem chi tiết Public Key"
-                      style={{ padding: '6px 10px' }}
-                    >
-                      <Eye size={14} />
-                    </button>
-                  </div>
-                )}
+                <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                  {key.pubContent && (
+                    <>
+                      <button
+                        onClick={() => handleCopyPub(key)}
+                        className="btn-secondary"
+                        style={{ flex: 1, fontSize: '12px', padding: '6px 12px' }}
+                      >
+                        {copiedKey === key.name ? (
+                          <><Check size={14} color="#10b981" /> {t('identity.copiedPubKey')}</>
+                        ) : (
+                          <><Copy size={14} /> {t('identity.copyPubKey')}</>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => setViewPubModal(key)}
+                        className="btn-secondary"
+                        title="Xem chi tiết Public Key"
+                        style={{ padding: '6px 10px' }}
+                      >
+                        <Eye size={14} />
+                      </button>
+                    </>
+                  )}
+                  <button
+                    onClick={() => setDeleteConfirmKey(key)}
+                    className="btn-secondary"
+                    title={t('identity.deleteKey')}
+                    style={{
+                      padding: '6px 10px',
+                      color: '#f87171',
+                      borderColor: 'rgba(248, 113, 113, 0.3)',
+                      background: 'rgba(239, 68, 68, 0.08)',
+                      marginLeft: key.pubContent ? 0 : 'auto'
+                    }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -257,12 +291,12 @@ export default function IdentityManager() {
             border: '1px solid var(--border-color)'
           }}>
             <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', marginBottom: '16px' }}>
-              Tạo Khóa SSH Mới (`ssh-keygen`)
+              {t('identity.genTitle')}
             </h3>
             <form onSubmit={handleGenerate}>
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>
-                  Tên tệp khóa (lưu tại ~/.ssh/)
+                  {t('identity.keyFilename')}
                 </label>
                 <input
                   type="text"
@@ -276,21 +310,21 @@ export default function IdentityManager() {
 
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>
-                  Thuật toán mã hóa
+                  {t('identity.cryptoAlgo')}
                 </label>
                 <select
                   value={genForm.type}
                   onChange={e => setGenForm({ ...genForm, type: e.target.value })}
                   className="input-field"
                 >
-                  <option value="ed25519">ED25519 (Mới, nhanh & an toàn nhất)</option>
-                  <option value="rsa">RSA 4096-bit (Khả năng tương thích cũ tốt nhất)</option>
+                  <option value="ed25519">ED25519 (Recommended)</option>
+                  <option value="rsa">RSA 4096-bit</option>
                 </select>
               </div>
 
               <div style={{ marginBottom: '24px' }}>
                 <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>
-                  Ghi chú (Comment)
+                  {t('identity.comment')}
                 </label>
                 <input
                   type="text"
@@ -303,10 +337,10 @@ export default function IdentityManager() {
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                 <button type="button" onClick={() => setShowGenModal(false)} className="btn-secondary">
-                  Hủy
+                  {t('modals.cancel')}
                 </button>
                 <button type="submit" disabled={genLoading} className="btn-primary">
-                  {genLoading ? 'Đang tạo khóa...' : 'Tạo Khóa Ngay'}
+                  {genLoading ? t('identity.genLoading') : t('identity.genSubmit')}
                 </button>
               </div>
             </form>
@@ -333,12 +367,12 @@ export default function IdentityManager() {
             border: '1px solid var(--border-color)'
           }}>
             <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', marginBottom: '16px' }}>
-              Import Khóa Private Key vào Keychain (~/.ssh/)
+              {t('identity.importTitle')}
             </h3>
             <form onSubmit={handleImport}>
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>
-                  Tên tệp lưu trong ~/.ssh/
+                  {t('identity.importFilename')}
                 </label>
                 <input
                   type="text"
@@ -377,17 +411,17 @@ export default function IdentityManager() {
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
                   <Upload size={24} color="var(--accent-primary)" />
                   <span style={{ fontSize: '13px', fontWeight: 600, color: '#fff' }}>
-                    Kéo thả tệp Private Key vào đây hoặc Nhấp chọn từ máy
+                    {t('identity.dragDropText')}
                   </span>
                   <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                    Hỗ trợ tệp OpenSSH / PEM (.pem, id_rsa, id_ed25519...)
+                    {t('identity.dragDropSub')}
                   </span>
                 </div>
               </div>
 
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>
-                  Nội dung Private Key (PEM/OpenSSH)
+                  {t('identity.privateKeyContent')}
                 </label>
                 <textarea
                   rows={5}
@@ -421,20 +455,20 @@ export default function IdentityManager() {
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: '#818cf8', marginBottom: '8px' }}>
                     <ShieldCheck size={16} />
-                    <span>Xem Trước Thông Tin Khóa (Review Before Import)</span>
+                    <span>{t('identity.reviewTitle')}</span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                    <div><span style={{ color: 'var(--text-muted)' }}>Tệp nguồn:</span> <b>{fileMeta.fileName}</b></div>
-                    <div><span style={{ color: 'var(--text-muted)' }}>Định dạng:</span> <b>{fileMeta.type}</b></div>
-                    <div><span style={{ color: 'var(--text-muted)' }}>Bảo mật:</span> {fileMeta.isEncrypted ? <b style={{ color: '#f59e0b' }}>🔒 Có mật khẩu (Passphrase)</b> : <b style={{ color: '#10b981' }}>🔓 Không mã hóa</b>}</div>
-                    <div><span style={{ color: 'var(--text-muted)' }}>Độ dài:</span> <b>{fileMeta.linesCount} dòng</b> {fileMeta.fileSize !== 'N/A' && `(${fileMeta.fileSize})`}</div>
+                    <div><span style={{ color: 'var(--text-muted)' }}>File:</span> <b>{fileMeta.fileName}</b></div>
+                    <div><span style={{ color: 'var(--text-muted)' }}>Format:</span> <b>{fileMeta.type}</b></div>
+                    <div><span style={{ color: 'var(--text-muted)' }}>Encrypted:</span> {fileMeta.isEncrypted ? <b style={{ color: '#f59e0b' }}>🔒 Yes</b> : <b style={{ color: '#10b981' }}>🔓 No</b>}</div>
+                    <div><span style={{ color: 'var(--text-muted)' }}>Lines:</span> <b>{fileMeta.linesCount} lines</b> {fileMeta.fileSize !== 'N/A' && `(${fileMeta.fileSize})`}</div>
                   </div>
                 </div>
               )}
 
               <div style={{ marginBottom: '24px' }}>
                 <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>
-                  Nội dung Public Key (.pub) - Không bắt buộc
+                  {t('identity.publicKeyContent')}
                 </label>
                 <input
                   type="text"
@@ -448,10 +482,10 @@ export default function IdentityManager() {
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                 <button type="button" onClick={() => setShowImportModal(false)} className="btn-secondary">
-                  Hủy
+                  {t('modals.cancel')}
                 </button>
                 <button type="submit" disabled={importLoading} className="btn-primary">
-                  {importLoading ? 'Đang lưu...' : 'Lưu Khóa'}
+                  {importLoading ? t('identity.importLoading') : t('identity.importSubmit')}
                 </button>
               </div>
             </form>
@@ -500,6 +534,70 @@ export default function IdentityManager() {
                 className="btn-primary"
               >
                 <Copy size={15} /> Sao chép Public Key
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmKey && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.75)',
+          backdropFilter: 'blur(6px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2500
+        }}>
+          <div className="glass-panel" style={{
+            width: '440px',
+            borderRadius: '16px',
+            padding: '24px',
+            border: '1px solid rgba(239, 68, 68, 0.4)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '17px', fontWeight: 700, color: '#f87171', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Trash2 size={18} /> {t('identity.deleteConfirmTitle')}
+              </h3>
+              <button onClick={() => setDeleteConfirmKey(null)} className="btn-icon">
+                <X size={18} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: '13.5px', color: '#e2e8f0', lineHeight: 1.5, marginBottom: '16px' }}>
+              {t('identity.deleteConfirmDesc')}
+            </p>
+
+            <div style={{
+              background: 'rgba(0,0,0,0.3)',
+              padding: '12px 14px',
+              borderRadius: '10px',
+              border: '1px solid var(--border-color)',
+              marginBottom: '20px',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '13px',
+              color: '#f87171'
+            }}>
+              {deleteConfirmKey.path}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                onClick={() => setDeleteConfirmKey(null)}
+                className="btn-secondary"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={() => handleDeleteKey(deleteConfirmKey)}
+                disabled={deleting}
+                className="btn-primary"
+                style={{ background: '#ef4444', borderColor: '#ef4444', color: '#fff' }}
+              >
+                <Trash2 size={15} /> {deleting ? 'Đang xóa...' : t('identity.deleteKey')}
               </button>
             </div>
           </div>

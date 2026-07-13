@@ -1,5 +1,12 @@
 const https = require('https');
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const { exec } = require('child_process');
 const packageJson = require('../package.json');
+
+const UPDATE_TEMP_DIR = path.join(os.tmpdir(), 'nexusssh-updates');
 
 const CURRENT_VERSION = packageJson.version || '1.0.0';
 const GITHUB_REPO = 'hongsonvu0622-stack/nessus-ssh';
@@ -103,8 +110,119 @@ function checkLatestRelease() {
   });
 }
 
+function cleanupOldPackages() {
+  try {
+    if (fs.existsSync(UPDATE_TEMP_DIR)) {
+      const files = fs.readdirSync(UPDATE_TEMP_DIR);
+      files.forEach(file => {
+        try {
+          fs.unlinkSync(path.join(UPDATE_TEMP_DIR, file));
+        } catch (e) {}
+      });
+    } else {
+      fs.mkdirSync(UPDATE_TEMP_DIR, { recursive: true });
+    }
+    return { success: true, message: 'Đã dọn dẹp các tệp cài đặt cũ.' };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+}
+
+function downloadUpdateInBackground(downloadUrl, fileName, onProgress) {
+  return new Promise((resolve, reject) => {
+    if (!fs.existsSync(UPDATE_TEMP_DIR)) {
+      fs.mkdirSync(UPDATE_TEMP_DIR, { recursive: true });
+    }
+
+    const targetPath = path.join(UPDATE_TEMP_DIR, fileName || 'NexusSSH-update.dmg');
+
+    const downloadFile = (url) => {
+      const client = url.startsWith('https') ? https : http;
+      client.get(url, { headers: { 'User-Agent': 'NexusSSH-Updater/1.0' } }, (res) => {
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          return downloadFile(res.headers.location);
+        }
+
+        if (res.statusCode !== 200) {
+          return reject(new Error(`Tải xuống thất bại với HTTP ${res.statusCode}`));
+        }
+
+        const totalBytes = parseInt(res.headers['content-length'], 10) || 0;
+        let downloadedBytes = 0;
+        const fileStream = fs.createWriteStream(targetPath);
+
+        res.on('data', chunk => {
+          downloadedBytes += chunk.length;
+          if (totalBytes > 0 && onProgress) {
+            const percent = Math.round((downloadedBytes / totalBytes) * 100);
+            onProgress({ percent, downloadedBytes, totalBytes });
+          }
+        });
+
+        res.pipe(fileStream);
+
+        fileStream.on('finish', () => {
+          fileStream.close();
+          resolve({ success: true, filePath: targetPath });
+        });
+
+        fileStream.on('error', err => {
+          fs.unlink(targetPath, () => {});
+          reject(err);
+        });
+      }).on('error', reject);
+    };
+
+    downloadFile(downloadUrl);
+  });
+}
+
+function installUpdateAndCleanup(fileName) {
+  return new Promise((resolve, reject) => {
+    const filePath = path.join(UPDATE_TEMP_DIR, fileName);
+    if (!fs.existsSync(filePath)) {
+      return reject(new Error('Tệp cập nhật không tồn tại hoặc đã bị xóa.'));
+    }
+
+    const platform = os.platform();
+    let cmd = `open "${filePath}"`;
+    if (platform === 'win32') {
+      if (fileName.endsWith('.msi')) {
+        cmd = `start "" msiexec /i "${filePath}"`;
+      } else {
+        cmd = `start "" "${filePath}"`;
+      }
+    } else if (platform === 'linux') {
+      cmd = `chmod +x "${filePath}" && "${filePath}" &`;
+    }
+
+    exec(cmd, (err) => {
+      if (err) {
+        return reject(err);
+      }
+
+      // Lên lịch tự động dọn dẹp tệp cài đặt (package) sau 90 giây để đảm bảo installer đã copy/chạy xong
+      setTimeout(() => {
+        try {
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+            console.log('Đã tự động xóa tệp cài đặt cập nhật:', filePath);
+          }
+        } catch (e) {
+          // Windows: nếu installer vẫn giữ khóa tệp, cleanupOldPackages() sẽ tự xóa sạch vào lần mở app kế tiếp
+        }
+      }, 90000);
+
+      resolve({ success: true, message: 'Đang khởi chạy bộ cài đặt và sẽ tự động dọn dẹp tệp package.' });
+    });
+  });
+}
+
 module.exports = {
   CURRENT_VERSION,
   checkLatestRelease,
-  compareVersions
+  compareVersions,
+  cleanupOldPackages,
+  downloadUpdateInBackground,
+  installUpdateAndCleanup
 };

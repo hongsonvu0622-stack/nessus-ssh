@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Code2, Plus, Play, Trash2, Edit3, Terminal } from 'lucide-react';
+import { useI18n } from '../i18n/I18nContext.jsx';
 
 export default function SnippetDrawer({ snippets, onSaveSnippet, onDeleteSnippet }) {
+  const { t } = useI18n();
   const [title, setTitle] = useState('');
   const [command, setCommand] = useState('');
   const [category, setCategory] = useState('DevOps');
@@ -24,10 +26,10 @@ export default function SnippetDrawer({ snippets, onSaveSnippet, onDeleteSnippet
       {/* Header */}
       <div style={{ padding: '24px 28px', borderBottom: '1px solid var(--border-color)' }}>
         <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#fff' }}>
-          Command Snippets & Scripts
+          {t('snippets.pageTitle')}
         </h1>
         <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
-          Lưu trữ các lệnh thao tác thường dùng trên Linux SSH hoặc Cisco/Network Serial Console
+          {t('snippets.pageSubTitle')}
         </p>
       </div>
 
@@ -35,17 +37,17 @@ export default function SnippetDrawer({ snippets, onSaveSnippet, onDeleteSnippet
         {/* Form add snippet */}
         <div className="glass-panel" style={{ padding: '20px', borderRadius: '14px', alignSelf: 'start' }}>
           <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginBottom: '16px' }}>
-            Thêm Snippet Mới
+            {t('snippets.addNew')}
           </h3>
 
           <form onSubmit={handleAdd} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                Tên mô tả Snippet
+                {t('snippets.titleLabel')}
               </label>
               <input
                 type="text"
-                placeholder="ví dụ: Check Nginx Log"
+                placeholder={t('snippets.titlePlaceholder')}
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 required
@@ -55,7 +57,7 @@ export default function SnippetDrawer({ snippets, onSaveSnippet, onDeleteSnippet
 
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                Phân loại (Category)
+                {t('snippets.categoryLabel')}
               </label>
               <input
                 type="text"
@@ -67,7 +69,7 @@ export default function SnippetDrawer({ snippets, onSaveSnippet, onDeleteSnippet
 
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                Câu lệnh (Command)
+                {t('snippets.commandLabel')}
               </label>
               <textarea
                 placeholder="tail -f /var/log/nginx/access.log"
@@ -80,7 +82,7 @@ export default function SnippetDrawer({ snippets, onSaveSnippet, onDeleteSnippet
             </div>
 
             <button type="submit" className="btn-primary" style={{ justifyContent: 'center' }}>
-              <Plus size={16} /> Lưu Snippet
+              <Plus size={16} /> {t('snippets.saveBtn')}
             </button>
           </form>
         </div>

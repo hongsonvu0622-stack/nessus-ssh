@@ -656,10 +656,10 @@ export default function HostList({
                 color: '#a78bfa',
                 background: 'rgba(167, 139, 250, 0.08)'
               }}
-              title="Quét tự động thiết bị USB / Serial console đang cắm"
+              title={t('hostList.scanSerialTooltip')}
             >
               <Usb size={15} />
-              <span>Quét Serial</span>
+              <span>{t('hostList.scanSerial')}</span>
             </button>
 
             <button

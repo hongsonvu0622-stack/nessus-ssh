@@ -67,6 +67,16 @@ app.post('/api/ssh/import-key', (req, res) => {
   }
 });
 
+app.post('/api/ssh/delete-key', (req, res) => {
+  try {
+    const { name } = req.body;
+    const result = configImporter.deleteSshKey({ name });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/serial/ports', async (req, res) => {
   try {
     const ports = await serialManager.listPorts();
@@ -139,6 +149,27 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('updater:download', async ({ downloadUrl, fileName }) => {
+    try {
+      socket.emit('updater:progress', { percent: 0, downloadedBytes: 0, totalBytes: 0 });
+      const result = await updater.downloadUpdateInBackground(downloadUrl, fileName, (progress) => {
+        socket.emit('updater:progress', progress);
+      });
+      socket.emit('updater:ready', { fileName, filePath: result.filePath });
+    } catch (err) {
+      socket.emit('updater:error', { message: 'Lỗi tải bản cập nhật ngầm: ' + err.message });
+    }
+  });
+
+  socket.on('updater:install', async ({ fileName }) => {
+    try {
+      await updater.installUpdateAndCleanup(fileName);
+      socket.emit('updater:install-started', { message: 'Đang mở bộ cài đặt và tự động dọn dẹp package cũ...' });
+    } catch (err) {
+      socket.emit('updater:error', { message: 'Lỗi chạy bộ cài đặt: ' + err.message });
+    }
+  });
+
   socket.on('terminal:connect', ({ sessionId, config }) => {
     console.log(`Connecting session ${sessionId} [protocol: ${config.protocol || 'ssh'}]`);
     if (config.protocol === 'serial') {
@@ -199,5 +230,6 @@ server.on('error', (err) => {
 });
 
 server.listen(PORT, () => {
+  updater.cleanupOldPackages();
   console.log(`NexusSSH API & Socket Server running on http://localhost:${PORT}`);
 });

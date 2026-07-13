@@ -13,7 +13,7 @@ import { fetchData, saveData, fetchImportConfig, socket } from './services/socke
 import { Sparkles, RefreshCw, CheckCircle2, AlertCircle, Download } from 'lucide-react';
 
 export default function App() {
-  const { lang } = useI18n();
+  const { lang, t } = useI18n();
   const [activeView, setActiveView] = useState('hosts');
   const [connections, setConnections] = useState([]);
   const [groups, setGroups] = useState([]);
@@ -302,9 +302,9 @@ export default function App() {
         {activeView === 'settings' && (
           <div style={{ padding: '32px 36px', color: '#fff', maxWidth: '850px', overflowY: 'auto' }}>
             <div style={{ marginBottom: '28px' }}>
-              <h1 style={{ fontSize: '24px', fontWeight: 700 }}>Cài Đặt & Cập Nhật Phần Mềm</h1>
+              <h1 style={{ fontSize: '24px', fontWeight: 700 }}>{t('app.settingsTitle')}</h1>
               <p style={{ color: 'var(--text-muted)', marginTop: '4px', fontSize: '13px' }}>
-                Quản lý phiên bản, kiểm tra cập nhật mới và cấu hình hệ thống NexusSSH Pro.
+                {t('app.settingsSubTitle')}
               </p>
             </div>
 
@@ -333,7 +333,7 @@ export default function App() {
                       NexusSSH Pro — Cyber Glass Edition
                     </div>
                     <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                      {lang === 'vi' ? 'Phiên bản hiện tại:' : 'Current version:'} <b style={{ color: '#fff' }}>v{updateInfo?.currentVersion || '1.0.0'}</b>
+                      {t('updateModal.currentVersion')} <b style={{ color: '#fff' }}>v{updateInfo?.currentVersion || '1.0.0'}</b>
                     </div>
                   </div>
                 </div>
@@ -347,7 +347,7 @@ export default function App() {
                     className="btn-primary"
                     style={{ fontSize: '13px', padding: '10px 18px' }}
                   >
-                    <RefreshCw size={15} /> {lang === 'vi' ? 'Kiểm tra bản cập nhật mới' : 'Check for software updates'}
+                    <RefreshCw size={15} /> {t('app.checkNewUpdateBtn')}
                   </button>
                 </div>
               </div>
@@ -365,10 +365,10 @@ export default function App() {
                 }}>
                   <span style={{ fontSize: '13px', color: '#fff' }}>
                     {updateInfo.status === 'update-available'
-                      ? (lang === 'vi' ? `🎉 Phát hiện bản cập nhật mới v${updateInfo.latestVersion} từ GitHub!` : `🎉 New release available v${updateInfo.latestVersion} on GitHub!`)
+                      ? `${lang === 'vi' ? '🎉 Phát hiện bản cập nhật mới' : '🎉 New release available'} v${updateInfo.latestVersion}!`
                       : updateInfo.status === 'checking'
-                        ? (lang === 'vi' ? '⏳ Đang kiểm tra phiên bản mới từ GitHub...' : '⏳ Checking for updates on GitHub...')
-                        : (lang === 'vi' ? '✔ Bạn đang sử dụng phiên bản mới nhất.' : '✔ You are running the latest version.')}
+                        ? t('app.checkingUpdate')
+                        : t('app.latestVersionMsg')}
                   </span>
                   {updateInfo.status === 'update-available' && (
                     <button
@@ -376,7 +376,7 @@ export default function App() {
                       className="btn-secondary"
                       style={{ fontSize: '12px', padding: '6px 12px' }}
                     >
-                      {lang === 'vi' ? 'Xem chi tiết & Tải về' : 'View details & Download'}
+                      {t('app.viewAndDownload')}
                     </button>
                   )}
                 </div>
@@ -398,10 +398,10 @@ export default function App() {
                 />
                 <div>
                   <div style={{ fontSize: '14px', fontWeight: 600, color: '#fff' }}>
-                    {lang === 'vi' ? 'Tự động kiểm tra bản cập nhật khi khởi động ứng dụng (Auto-Check Updates)' : 'Automatically check for updates on startup'}
+                    {t('app.autoCheckTitle')}
                   </div>
                   <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                    {lang === 'vi' ? 'Ứng dụng tự động thông báo khi có bản phát hành mới trên GitHub Releases.' : 'Automatically notify when a new release is published on GitHub.'}
+                    {t('app.autoCheckDesc')}
                   </div>
                 </div>
               </label>
@@ -434,10 +434,10 @@ export default function App() {
           <Sparkles size={18} color="#fff" />
           <div>
             <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>
-              {lang === 'vi' ? `Phiên bản mới v${updateInfo.latestVersion} đã sẵn sàng!` : `New version v${updateInfo.latestVersion} is available!`}
+              {`${lang === 'vi' ? 'Phiên bản mới' : 'New version'} v${updateInfo.latestVersion} ${lang === 'vi' ? 'đã sẵn sàng!' : 'is available!'}`}
             </div>
             <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.85)' }}>
-              {lang === 'vi' ? 'Nhấp để xem chi tiết và tải về' : 'Click to view details and download'}
+              {t('app.bannerClick')}
             </div>
           </div>
         </div>

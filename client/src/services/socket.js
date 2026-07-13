@@ -58,6 +58,28 @@ export async function importSshKey(name, privateContent, publicContent) {
   return res.json();
 }
 
+export async function deleteSshKey(name) {
+  const res = await fetch(`${API_BASE}/ssh/delete-key`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name })
+  });
+  if (!res.ok) {
+    if (res.status === 404) {
+      throw new Error('API xóa khóa chưa được tải trên server Node đang chạy. Vui lòng tắt ứng dụng (Ctrl+C) và khởi động lại npm run electron!');
+    }
+    let errMsg = 'Failed to delete key';
+    try {
+      const err = await res.json();
+      errMsg = err.error || errMsg;
+    } catch (e) {
+      errMsg = `Lỗi từ server (${res.status})`;
+    }
+    throw new Error(errMsg);
+  }
+  return res.json();
+}
+
 export async function fetchSerialPorts() {
   const res = await fetch(`${API_BASE}/serial/ports`);
   return res.json();
