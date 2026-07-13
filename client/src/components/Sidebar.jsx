@@ -49,7 +49,7 @@ export default function Sidebar({ activeView, setActiveView, activeTabsCount, on
             NexusSSH
           </div>
           <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-            Termius macOS Pro
+            Cyber Glass Edition
           </div>
         </div>
       </div>

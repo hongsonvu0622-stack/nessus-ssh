@@ -1,7 +1,7 @@
 {
   "name": "nexus-ssh",
   "version": "1.0.0",
-  "description": "Premium macOS SSH, Serial & SFTP Manager (Termius Alternative)",
+  "description": "Next-Gen Cross-Platform SSH, Serial Console & SFTP Manager with Cyber Neon Glass UI",
   "main": "electron-main.js",
   "scripts": {
     "postinstall": "npm install --prefix client",
@@ -79,7 +79,7 @@
     "ssh",
     "sftp",
     "serial",
-    "termius",
+    "cyberglass",
     "macos",
     "terminal"
   ],

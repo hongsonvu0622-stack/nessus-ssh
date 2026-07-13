@@ -59,7 +59,7 @@ const DEFAULT_DATA = {
   ],
   identities: [],
   settings: {
-    theme: 'termius-dark',
+    theme: 'nexus-cyber-dark',
     fontSize: 14,
     fontFamily: 'JetBrains Mono, Menlo, Monaco, Consolas, monospace',
     cursorStyle: 'block',

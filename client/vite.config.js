@@ -7,5 +7,17 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true
+  },
+  build: {
+    chunkSizeWarningLimit: 1500,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'lucide-react', 'socket.io-client'],
+          terminal: ['xterm', 'xterm-addon-fit', 'xterm-addon-web-links'],
+          utils: ['xlsx']
+        }
+      }
+    }
   }
 });

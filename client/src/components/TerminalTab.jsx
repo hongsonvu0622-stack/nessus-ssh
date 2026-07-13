@@ -17,8 +17,8 @@ import { socket, fetchLocalKeys } from '../services/socket';
 import { useI18n } from '../i18n/I18nContext.jsx';
 
 const TERMINAL_THEMES = {
-  'termius-dark': {
-    name: 'Termius Dark',
+  'nexus-cyber-dark': {
+    name: 'Nexus Cyber Dark',
     background: '#0a0d14',
     foreground: '#f1f5f9',
     cursor: '#6366f1',
@@ -93,7 +93,7 @@ export default function TerminalTab({
   const fitAddonRef = useRef(null);
 
   const activeTab = tabs.find(t => t.sessionId === activeTabId) || tabs[0];
-  const [themeKey, setThemeKey] = useState('termius-dark');
+  const [themeKey, setThemeKey] = useState('nexus-cyber-dark');
   const [showSnippets, setShowSnippets] = useState(false);
   const [statusText, setStatusText] = useState('Connecting...');
   const [authModal, setAuthModal] = useState(null);
