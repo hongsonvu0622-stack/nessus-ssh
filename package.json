@@ -1,0 +1,91 @@
+{
+  "name": "nexus-ssh",
+  "version": "1.0.0",
+  "description": "Premium macOS SSH, Serial & SFTP Manager (Termius Alternative)",
+  "main": "electron-main.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "concurrently \"node server/server.js\" \"npm run dev --prefix client\"",
+    "electron": "concurrently \"node server/server.js\" \"npm run dev --prefix client\" \"sleep 3 && electron .\"",
+    "build": "npm run build --prefix client",
+    "dist": "npm run build --prefix client && npx electron-builder",
+    "dist:mac": "npm run build --prefix client && npx electron-builder --mac --x64 --arm64",
+    "dist:win": "npm run build --prefix client && npx electron-builder --win --x64 --arm64",
+    "dist:win:x64": "npm run build --prefix client && npx electron-builder --win --x64",
+    "dist:linux": "npm run build --prefix client && npx electron-builder --linux"
+  },
+  "build": {
+    "appId": "com.nexusssh.app",
+    "productName": "NexusSSH",
+    "npmRebuild": false,
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "electron-main.js",
+      "server/**/*",
+      "client/dist/**/*",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "node_modules/@serialport/**",
+      "node_modules/cpu-features/**"
+    ],
+    "mac": {
+      "icon": "build/icon.icns",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.developer-tools"
+    },
+    "win": {
+      "icon": "build/icon.png",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ]
+    },
+    "linux": {
+      "icon": "build/icon.png",
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Development"
+    }
+  },
+  "keywords": [
+    "ssh",
+    "sftp",
+    "serial",
+    "termius",
+    "macos",
+    "terminal"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "serialport": "^12.0.0",
+    "socket.io": "^4.7.5",
+    "ssh2": "^1.15.0"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "electron": "^30.0.0",
+    "electron-builder": "^26.15.3"
+  }
+}
