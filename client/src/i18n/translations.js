@@ -135,7 +135,7 @@ export const translations = {
       downloadingBg: 'Đang tải bản cập nhật ngầm...',
       installNowBtn: '🚀 Cài đặt ngay & Tự dọn dẹp bộ cài',
       installingMsg: '⏳ Đang giải nén & cài đặt bản cập nhật... Vui lòng giữ ứng dụng mở.',
-      installSuccessMsg: '🎉 Cập nhật thành công! Ứng dụng sẽ tự động khởi động lại sau 3 giây...',
+      installSuccessMsg: '🎉 Cập nhật thành công! Ứng dụng sẽ tự động tắt & mở lại phiên bản mới sau 3 giây...',
       externalDownload: 'Tải qua trình duyệt'
     },
     // Host Modal
@@ -308,7 +308,7 @@ export const translations = {
       downloadingBg: 'Downloading update in background...',
       installNowBtn: '🚀 Install Now & Auto-Cleanup Package',
       installingMsg: '⏳ Extracting & installing update... Please keep app open.',
-      installSuccessMsg: '🎉 Update completed successfully! App relaunching in 3 seconds...',
+      installSuccessMsg: '🎉 Update successful! App will quit & relaunch the new version in 3 seconds...',
       externalDownload: 'Browser Download'
     },
     // Host Modal

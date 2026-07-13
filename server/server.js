@@ -166,6 +166,20 @@ io.on('connection', (socket) => {
       socket.emit('updater:install-progress', { message: 'Đang giải nén & cài đặt bản cập nhật...' });
       await updater.installUpdateAndCleanup(fileName);
       socket.emit('updater:install-success', { message: '✔ Cập nhật thành công! Ứng dụng đang khởi chạy lại...' });
+
+      // Tự động tắt ứng dụng hiện tại sau 3 giây để bản cập nhật/bộ cài mới tiếp quản
+      setTimeout(() => {
+        try {
+          const { app } = require('electron');
+          if (app) {
+            app.quit();
+          } else {
+            process.exit(0);
+          }
+        } catch (e) {
+          process.exit(0);
+        }
+      }, 3000);
     } catch (err) {
       socket.emit('updater:error', { message: 'Lỗi chạy bộ cài đặt: ' + err.message });
     }
