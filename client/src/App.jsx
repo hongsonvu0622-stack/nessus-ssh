@@ -37,6 +37,9 @@ export default function App() {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [autoCheckUpdate, setAutoCheckUpdate] = useState(true);
 
+  // RDP status notice
+  const [rdpNotice, setRdpNotice] = useState(null);
+
   const loadAllData = async () => {
     try {
       const res = await fetchData();
@@ -60,6 +63,22 @@ export default function App() {
 
     socket.on('updater:status', onUpdateStatus);
 
+    const onRdpLaunching = ({ host }) => {
+      setRdpNotice({ type: 'info', message: `${t('hostModal.rdpLaunching')} (${host})` });
+    };
+    const onRdpLaunched = () => {
+      setRdpNotice({ type: 'success', message: t('hostModal.rdpLaunched') });
+      setTimeout(() => setRdpNotice(null), 3500);
+    };
+    const onRdpError = ({ message }) => {
+      setRdpNotice({ type: 'error', message: `RDP Error: ${message}` });
+      setTimeout(() => setRdpNotice(null), 6000);
+    };
+
+    socket.on('rdp:launching', onRdpLaunching);
+    socket.on('rdp:launched', onRdpLaunched);
+    socket.on('rdp:error', onRdpError);
+
     const timer = setTimeout(() => {
       if (autoCheckUpdate) {
         socket.emit('updater:check');
@@ -69,6 +88,9 @@ export default function App() {
     return () => {
       clearTimeout(timer);
       socket.off('updater:status', onUpdateStatus);
+      socket.off('rdp:launching', onRdpLaunching);
+      socket.off('rdp:launched', onRdpLaunched);
+      socket.off('rdp:error', onRdpError);
     };
   }, []);
 
@@ -94,6 +116,11 @@ export default function App() {
     setTabs(prev => [...prev, newTab]);
     setActiveTabId(sessionId);
     setActiveView('terminal');
+  };
+
+  const handleRdpConnect = (config) => {
+    setRdpNotice({ type: 'info', message: `${t('hostModal.rdpLaunching')} (${config.host})` });
+    socket.emit('rdp:connect', config);
   };
 
   const handleCloseTab = (sessionId) => {
@@ -225,12 +252,44 @@ export default function App() {
         }}
       />
 
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg-primary)' }}>
+      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg-primary)', position: 'relative' }}>
+        {rdpNotice && (
+          <div
+            className="animate-fade-in"
+            style={{
+              position: 'absolute',
+              top: '16px',
+              right: '20px',
+              zIndex: 999,
+              padding: '12px 18px',
+              borderRadius: '10px',
+              background: rdpNotice.type === 'error' ? 'rgba(239, 68, 68, 0.92)' : rdpNotice.type === 'success' ? 'rgba(16, 185, 129, 0.92)' : 'rgba(14, 165, 233, 0.92)',
+              color: '#fff',
+              fontSize: '13px',
+              fontWeight: 600,
+              boxShadow: '0 8px 25px rgba(0,0,0,0.4)',
+              backdropFilter: 'blur(8px)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}
+          >
+            <span>{rdpNotice.message}</span>
+            <button
+              onClick={() => setRdpNotice(null)}
+              style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', padding: 0 }}
+            >
+              ×
+            </button>
+          </div>
+        )}
+
         {activeView === 'hosts' && (
           <HostList
             connections={connections}
             groups={groups}
             onConnectTerminal={handleConnectTerminal}
+            onRdpConnect={handleRdpConnect}
             onOpenSftp={handleOpenSftp}
             onOpenModal={(data) => {
               setModalData(data);

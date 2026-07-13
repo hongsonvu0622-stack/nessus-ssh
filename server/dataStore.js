@@ -79,7 +79,8 @@ function loadData() {
       parsed.connections = parsed.connections.map(c => ({
         ...c,
         password: c.password ? cryptoUtil.decryptPassword(c.password) : '',
-        passphrase: c.passphrase ? cryptoUtil.decryptPassword(c.passphrase) : ''
+        passphrase: c.passphrase ? cryptoUtil.decryptPassword(c.passphrase) : '',
+        rdpPassword: c.rdpPassword ? cryptoUtil.decryptPassword(c.rdpPassword) : ''
       }));
     }
     return parsed;
@@ -96,7 +97,8 @@ function saveData(data) {
       toSave.connections = toSave.connections.map(c => ({
         ...c,
         password: c.password ? cryptoUtil.encryptPassword(c.password) : '',
-        passphrase: c.passphrase ? cryptoUtil.encryptPassword(c.passphrase) : ''
+        passphrase: c.passphrase ? cryptoUtil.encryptPassword(c.passphrase) : '',
+        rdpPassword: c.rdpPassword ? cryptoUtil.encryptPassword(c.rdpPassword) : ''
       }));
     }
     fs.writeFileSync(DATA_FILE, JSON.stringify(toSave, null, 2), 'utf-8');

@@ -10,6 +10,7 @@ const serialManager = require('./serialManager');
 const localPtyManager = require('./localPtyManager');
 const sftpManager = require('./sftpManager');
 const updater = require('./updater');
+const rdpManager = require('./rdpManager');
 
 const app = express();
 const server = http.createServer(app);
@@ -226,6 +227,22 @@ io.on('connection', (socket) => {
       localPtyManager.disconnect(sessionId);
     } else {
       sshManager.disconnect(sessionId);
+    }
+  });
+
+  // RDP
+  socket.on('rdp:check-client', () => {
+    const info = rdpManager.checkRdpClient();
+    socket.emit('rdp:client-status', info);
+  });
+
+  socket.on('rdp:connect', async (config) => {
+    try {
+      socket.emit('rdp:launching', { host: config.host });
+      const result = await rdpManager.launch(config);
+      socket.emit('rdp:launched', result);
+    } catch (err) {
+      socket.emit('rdp:error', { message: err.message });
     }
   });
 

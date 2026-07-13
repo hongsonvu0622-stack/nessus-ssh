@@ -37,6 +37,7 @@ export const translations = {
       filterSsh: 'SSH',
       filterSerial: 'Serial Console',
       filterLocal: 'Local Shell',
+      filterRdp: 'RDP',
       serverCount: 'máy chủ',
       addHostBtn: 'Thêm Host',
       openTerminalBtn: 'Mở Terminal',
@@ -144,7 +145,20 @@ export const translations = {
       passphrasePlaceholder: 'Mật khẩu mở khóa khóa SSH (để trống nếu hỏi khi kết nối hoặc không có)',
       passphraseHint: '🔐 Nếu khóa SSH có Passphrase nhưng để trống, ứng dụng sẽ tự động hiện hộp thoại hỏi Passphrase khi kết nối',
       scanningPorts: 'Đang quét...',
-      rescanPorts: 'Quét lại cổng'
+      rescanPorts: 'Quét lại cổng',
+      // RDP fields
+      rdpTab: 'Remote Desktop',
+      rdpHost: 'Địa chỉ IP / Hostname',
+      rdpPort: 'Cổng RDP',
+      rdpUsername: 'Tên đăng nhập Windows',
+      rdpPassword: 'Mật khẩu (tùy chọn)',
+      rdpResolution: 'Độ phân giải',
+      rdpFullscreen: 'Mở toàn màn hình',
+      rdpNote: '⚡ RDP sẽ mở ứng dụng Remote Desktop bên ngoài (mstsc / xfreerdp)',
+      rdpNoClient: '⚠ Không tìm thấy RDP client trên máy. ',
+      rdpLaunching: 'Đang mở kết nối RDP...',
+      rdpLaunched: '✔ Đã mở RDP client thành công!',
+      rdpConnectBtn: '🖥 Kết Nối RDP'
     },
     serialModal: {
       title: 'Quét Thiết Bị Serial (USB / UART / COM)',
@@ -210,6 +224,7 @@ export const translations = {
       filterSsh: 'SSH',
       filterSerial: 'Serial Console',
       filterLocal: 'Local Shell',
+      filterRdp: 'RDP',
       serverCount: 'servers',
       addHostBtn: 'Add Host',
       openTerminalBtn: 'Open Terminal',
@@ -317,7 +332,20 @@ export const translations = {
       passphrasePlaceholder: 'Passphrase to decrypt private key (leave blank to prompt on connect)',
       passphraseHint: '🔐 If the key requires a passphrase and left blank, you will be prompted securely when connecting',
       scanningPorts: 'Scanning...',
-      rescanPorts: 'Rescan Ports'
+      rescanPorts: 'Rescan Ports',
+      // RDP fields
+      rdpTab: 'Remote Desktop',
+      rdpHost: 'IP Address / Hostname',
+      rdpPort: 'RDP Port',
+      rdpUsername: 'Windows Username',
+      rdpPassword: 'Password (optional)',
+      rdpResolution: 'Resolution',
+      rdpFullscreen: 'Launch Fullscreen',
+      rdpNote: '⚡ RDP will open an external Remote Desktop client (mstsc / xfreerdp)',
+      rdpNoClient: '⚠ No RDP client found on this system. ',
+      rdpLaunching: 'Opening RDP connection...',
+      rdpLaunched: '✔ RDP client launched successfully!',
+      rdpConnectBtn: '🖥 Connect RDP'
     },
     serialModal: {
       title: 'Scan Serial Devices (USB / UART / COM)',

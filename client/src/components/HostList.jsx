@@ -22,7 +22,8 @@ import {
   FolderTree,
   MoreVertical,
   X,
-  AlertTriangle
+  AlertTriangle,
+  Monitor
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useI18n } from '../i18n/I18nContext.jsx';
@@ -39,11 +40,12 @@ export default function HostList({
   onSaveBatch,
   onCreateGroup,
   onRenameGroup,
-  onDeleteGroup
+  onDeleteGroup,
+  onRdpConnect
 }) {
   const { t, lang } = useI18n();
   const [search, setSearch] = useState('');
-  const [filterProtocol, setFilterProtocol] = useState('all'); // all, ssh, serial, local
+  const [filterProtocol, setFilterProtocol] = useState('all'); // all, ssh, serial, local, rdp
   const [filterGroup, setFilterGroup] = useState('all');
 
   // View mode: 'folder' or 'grid'
@@ -412,14 +414,25 @@ export default function HostList({
       )}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-        <button
-          onClick={() => onConnectTerminal(conn)}
-          className="btn-primary"
-          style={{ flex: 1, fontSize: '13px', padding: '8px 14px' }}
-        >
-          <Terminal size={15} />
-          {t('hostList.openTerminalBtn')}
-        </button>
+        {conn.protocol === 'rdp' ? (
+          <button
+            onClick={() => onRdpConnect && onRdpConnect(conn)}
+            className="btn-primary"
+            style={{ flex: 1, fontSize: '13px', padding: '8px 14px', background: 'linear-gradient(135deg, #0284c7, #0ea5e9)', borderColor: '#0ea5e9' }}
+          >
+            <Monitor size={15} />
+            {t('hostModal.rdpConnectBtn')}
+          </button>
+        ) : (
+          <button
+            onClick={() => onConnectTerminal(conn)}
+            className="btn-primary"
+            style={{ flex: 1, fontSize: '13px', padding: '8px 14px' }}
+          >
+            <Terminal size={15} />
+            {t('hostList.openTerminalBtn')}
+          </button>
+        )}
 
         {/* Tạm ẩn tính năng SFTP phát triển sau
         {conn.protocol === 'ssh' && (
@@ -699,6 +712,7 @@ export default function HostList({
                 { id: 'all', label: t('hostList.filterAll') },
                 { id: 'ssh', label: t('hostList.filterSsh') },
                 { id: 'serial', label: t('hostList.filterSerial') },
+                { id: 'rdp', label: t('hostList.filterRdp') },
                 { id: 'local', label: t('hostList.filterLocal') }
               ].map(item => (
                 <button

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Server, Usb, Terminal, Save, KeyRound, RefreshCw } from 'lucide-react';
+import { X, Server, Usb, Terminal, Save, KeyRound, RefreshCw, Monitor } from 'lucide-react';
 import { fetchLocalKeys, fetchSerialPorts } from '../services/socket';
 import { useI18n } from '../i18n/I18nContext.jsx';
 
@@ -56,6 +56,13 @@ export default function HostModal({ initialData, groups, onClose, onSave }) {
   const [stopBits, setStopBits] = useState(initialData?.stopBits || 1);
   const [parity, setParity] = useState(initialData?.parity || 'none');
 
+  // RDP specific
+  const [rdpPort, setRdpPort] = useState(initialData?.rdpPort || 3389);
+  const [rdpUsername, setRdpUsername] = useState(initialData?.rdpUsername || '');
+  const [rdpPassword, setRdpPassword] = useState(initialData?.rdpPassword || '');
+  const [rdpResolution, setRdpResolution] = useState(initialData?.rdpResolution || '1920x1080');
+  const [rdpFullscreen, setRdpFullscreen] = useState(initialData?.rdpFullscreen !== false);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const tagArray = tags
@@ -66,7 +73,7 @@ export default function HostModal({ initialData, groups, onClose, onSave }) {
     const result = {
       id: initialData?.id || 'conn-' + Date.now(),
       protocol,
-      name: name || (protocol === 'serial' ? serialPath : host) || 'New Connection',
+      name: name || (protocol === 'serial' ? serialPath : (protocol === 'rdp' ? host : host)) || 'New Connection',
       group,
       tags: tagArray,
       notes,
@@ -87,6 +94,13 @@ export default function HostModal({ initialData, groups, onClose, onSave }) {
       result.dataBits = parseInt(dataBits, 10) || 8;
       result.stopBits = parseInt(stopBits, 10) || 1;
       result.parity = parity;
+    } else if (protocol === 'rdp') {
+      result.host = host;
+      result.rdpPort = parseInt(rdpPort, 10) || 3389;
+      result.rdpUsername = rdpUsername;
+      result.rdpPassword = rdpPassword;
+      result.rdpResolution = rdpResolution;
+      result.rdpFullscreen = rdpFullscreen;
     }
 
     onSave(result);
@@ -128,7 +142,7 @@ export default function HostModal({ initialData, groups, onClose, onSave }) {
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-              {protocol === 'serial' ? <Usb size={20} color="#a78bfa" /> : protocol === 'local' ? <Terminal size={20} color="#10b981" /> : <Server size={20} color="#818cf8" />}
+              {protocol === 'rdp' ? <Monitor size={20} color="#38bdf8" /> : protocol === 'serial' ? <Usb size={20} color="#a78bfa" /> : protocol === 'local' ? <Terminal size={20} color="#10b981" /> : <Server size={20} color="#818cf8" />}
             </div>
             <div>
               <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', letterSpacing: '-0.3px' }}>
@@ -153,9 +167,10 @@ export default function HostModal({ initialData, groups, onClose, onSave }) {
         <div style={{ padding: '20px 24px 0 24px' }}>
           <div style={{ display: 'flex', gap: '8px', background: 'rgba(0,0,0,0.3)', padding: '6px', borderRadius: '10px' }}>
             {[
-              { id: 'ssh', label: 'SSH Server', icon: Server },
-              { id: 'serial', label: 'Serial Console (UART)', icon: Usb },
-              { id: 'local', label: 'macOS Local Shell', icon: Terminal }
+              { id: 'ssh', label: 'SSH', icon: Server },
+              { id: 'serial', label: 'Serial', icon: Usb },
+              { id: 'rdp', label: t('hostModal.rdpTab'), icon: Monitor },
+              { id: 'local', label: 'Local Shell', icon: Terminal }
             ].map((tab) => {
               const Icon = tab.icon;
               return (
@@ -499,6 +514,102 @@ export default function HostModal({ initialData, groups, onClose, onSave }) {
               <p style={{ fontSize: '13px', color: '#34d399' }}>
                 Kết nối này sẽ khởi chạy Shell trực tiếp (/bin/zsh hoặc /bin/bash) trên máy Mac của bạn.
               </p>
+            </div>
+          )}
+
+          {/* RDP specific fields */}
+          {protocol === 'rdp' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '14px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                    {t('hostModal.rdpHost')}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="192.168.1.100"
+                    value={host}
+                    onChange={e => setHost(e.target.value)}
+                    required
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                    {t('hostModal.rdpPort')}
+                  </label>
+                  <input
+                    type="number"
+                    value={rdpPort}
+                    onChange={e => setRdpPort(e.target.value)}
+                    style={inputStyle}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                    {t('hostModal.rdpUsername')}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Administrator"
+                    value={rdpUsername}
+                    onChange={e => setRdpUsername(e.target.value)}
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                    {t('hostModal.rdpPassword')}
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="••••••••"
+                    value={rdpPassword}
+                    onChange={e => setRdpPassword(e.target.value)}
+                    style={inputStyle}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                    {t('hostModal.rdpResolution')}
+                  </label>
+                  <select
+                    value={rdpResolution}
+                    onChange={e => setRdpResolution(e.target.value)}
+                    style={{ ...inputStyle, cursor: 'pointer' }}
+                  >
+                    <option value="1280x720">1280 × 720 (HD)</option>
+                    <option value="1366x768">1366 × 768</option>
+                    <option value="1600x900">1600 × 900</option>
+                    <option value="1920x1080">1920 × 1080 (Full HD)</option>
+                    <option value="2560x1440">2560 × 1440 (2K)</option>
+                    <option value="3840x2160">3840 × 2160 (4K)</option>
+                  </select>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingTop: '22px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#fff' }}>
+                    <input
+                      type="checkbox"
+                      checked={rdpFullscreen}
+                      onChange={e => setRdpFullscreen(e.target.checked)}
+                      style={{ width: '16px', height: '16px', accentColor: '#6366f1' }}
+                    />
+                    {t('hostModal.rdpFullscreen')}
+                  </label>
+                </div>
+              </div>
+
+              <div style={{ padding: '10px 14px', background: 'rgba(56, 189, 248, 0.08)', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.25)' }}>
+                <p style={{ fontSize: '12px', color: '#7dd3fc', margin: 0 }}>
+                  {t('hostModal.rdpNote')}
+                </p>
+              </div>
             </div>
           )}
 
