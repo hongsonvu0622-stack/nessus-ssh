@@ -157,7 +157,8 @@ export const translations = {
       rdpNote: '⚡ RDP sẽ mở ứng dụng Remote Desktop bên ngoài (mstsc / xfreerdp)',
       rdpNoClient: '⚠ Không tìm thấy RDP client trên máy. ',
       rdpLaunching: 'Đang mở kết nối RDP...',
-      rdpLaunched: '✔ Đã mở RDP client thành công!',
+      rdpLaunched: '✔ Đã mở Remote Desktop thành công!',
+      rdpLaunchedCopied: '📋 Đã mở Remote Desktop & đã sao chép mật khẩu vào Clipboard (Nhấn Cmd + V để dán ngay)!',
       rdpConnectBtn: '🖥 Kết Nối RDP'
     },
     serialModal: {
@@ -344,7 +345,8 @@ export const translations = {
       rdpNote: '⚡ RDP will open an external Remote Desktop client (mstsc / xfreerdp)',
       rdpNoClient: '⚠ No RDP client found on this system. ',
       rdpLaunching: 'Opening RDP connection...',
-      rdpLaunched: '✔ RDP client launched successfully!',
+      rdpLaunched: '✔ Remote Desktop launched successfully!',
+      rdpLaunchedCopied: '📋 Remote Desktop launched & password copied to Clipboard (Press Cmd + V to paste)!',
       rdpConnectBtn: '🖥 Connect RDP'
     },
     serialModal: {

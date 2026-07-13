@@ -66,9 +66,10 @@ export default function App() {
     const onRdpLaunching = ({ host }) => {
       setRdpNotice({ type: 'info', message: `${t('hostModal.rdpLaunching')} (${host})` });
     };
-    const onRdpLaunched = () => {
-      setRdpNotice({ type: 'success', message: t('hostModal.rdpLaunched') });
-      setTimeout(() => setRdpNotice(null), 3500);
+    const onRdpLaunched = (res) => {
+      const msg = res && res.copiedPassword ? t('hostModal.rdpLaunchedCopied') : t('hostModal.rdpLaunched');
+      setRdpNotice({ type: 'success', message: msg });
+      setTimeout(() => setRdpNotice(null), res && res.copiedPassword ? 6500 : 3500);
     };
     const onRdpError = ({ message }) => {
       setRdpNotice({ type: 'error', message: `RDP Error: ${message}` });

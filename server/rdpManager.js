@@ -1,4 +1,4 @@
-const { exec, execSync } = require('child_process');
+const { exec, execSync, spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -136,7 +136,13 @@ function launch(config) {
     let cmd = '';
 
     if (platform === 'win32') {
-      // Windows: generate .rdp file and open with mstsc
+      // Windows: optionally register credential via cmdkey then open with mstsc
+      if (username && password) {
+        try {
+          execSync(`cmdkey /generic:TERMSRV/${host} /user:"${username}" /pass:"${password}"`, { stdio: 'ignore' });
+        } catch {}
+      }
+
       const rdpContent = generateRdpFile(config);
       const rdpFile = path.join(TEMP_DIR, `nexus-${Date.now()}.rdp`);
       fs.writeFileSync(rdpFile, rdpContent, 'utf8');
@@ -149,7 +155,14 @@ function launch(config) {
       }, 5000);
 
     } else if (platform === 'darwin') {
-      // macOS: Microsoft Remote Desktop / Windows App → open .rdp file
+      // macOS: Microsoft Remote Desktop / Windows App ignores plaintext password in .rdp file for security.
+      // Auto-copy password to clipboard so user can press Cmd+V to paste instantly!
+      if (password) {
+        try {
+          spawnSync('pbcopy', [], { input: password });
+        } catch {}
+      }
+
       const rdpContent = generateRdpFile(config);
       const rdpFile = path.join(TEMP_DIR, `nexus-${Date.now()}.rdp`);
       fs.writeFileSync(rdpFile, rdpContent, 'utf8');
@@ -184,12 +197,12 @@ function launch(config) {
     exec(cmd, { timeout: 10000 }, (err) => {
       if (err && err.killed) {
         // Timeout is expected — RDP client stays open
-        return resolve({ success: true, client: clientInfo.client });
+        return resolve({ success: true, client: clientInfo.client, copiedPassword: platform === 'darwin' && !!password });
       }
       if (err && !err.message.includes('SIGTERM')) {
         return reject(err);
       }
-      resolve({ success: true, client: clientInfo.client });
+      resolve({ success: true, client: clientInfo.client, copiedPassword: platform === 'darwin' && !!password });
     });
   });
 }
