@@ -12,51 +12,7 @@ if (!fs.existsSync(DATA_DIR)) {
 }
 
 const DEFAULT_DATA = {
-  connections: [
-    {
-      id: 'conn-demo-local',
-      name: 'macOS Local Shell',
-      protocol: 'local',
-      host: 'localhost',
-      port: 0,
-      username: os.userInfo().username,
-      group: 'Local',
-      tags: ['macOS', 'Terminal', 'Local'],
-      status: 'offline',
-      favorite: true,
-      notes: 'Trực tiếp mở Terminal zsh/bash trên máy Mac của bạn'
-    },
-    {
-      id: 'conn-demo-ssh',
-      name: 'Production Cloud VM',
-      protocol: 'ssh',
-      host: 'demo.nexusssh.dev',
-      port: 22,
-      username: 'root',
-      authType: 'password',
-      password: '',
-      group: 'Production',
-      tags: ['Linux', 'Docker', 'AWS'],
-      status: 'offline',
-      favorite: true,
-      notes: 'Máy chủ mẫu (thay đổi thành IP/domain thực tế của bạn)'
-    },
-    {
-      id: 'conn-demo-serial',
-      name: 'Cisco Core Switch (Serial Console)',
-      protocol: 'serial',
-      serialPath: '/dev/cu.usbserial-A9007UX',
-      baudRate: 9600,
-      dataBits: 8,
-      stopBits: 1,
-      parity: 'none',
-      group: 'Network Devices',
-      tags: ['Cisco', 'Switch', 'Serial', 'Console'],
-      status: 'offline',
-      favorite: false,
-      notes: 'Kết nối Console cáp RJ45-to-USB cho Switch / Router'
-    }
-  ],
+  connections: [],
   groups: [
     { id: 'Local', name: 'Local', color: '#10B981' },
     { id: 'Production', name: 'Production', color: '#F43F5E' },
