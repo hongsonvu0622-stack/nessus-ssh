@@ -134,7 +134,7 @@ export const translations = {
       bgDownloadBtn: '⚡ Tải ngầm & Tự động cài đặt',
       downloadingBg: 'Đang tải bản cập nhật ngầm...',
       installNowBtn: '🚀 Cài đặt ngay & Tự dọn dẹp bộ cài',
-      installingMsg: 'Đang mở bộ cài đặt. Gói cài đặt sẽ tự động được xóa sau khi hoàn tất!',
+      installingMsg: 'Đang khởi chạy bộ cài đặt & tự động dọn dẹp... Cửa sổ sẽ tự đóng sau giây lát!',
       externalDownload: 'Tải qua trình duyệt'
     },
     // Host Modal
@@ -306,7 +306,7 @@ export const translations = {
       bgDownloadBtn: '⚡ Background Download & Install',
       downloadingBg: 'Downloading update in background...',
       installNowBtn: '🚀 Install Now & Auto-Cleanup Package',
-      installingMsg: 'Launching installer. Package file will be automatically cleaned up!',
+      installingMsg: 'Launching installer & auto-cleanup... Window will close automatically!',
       externalDownload: 'Browser Download'
     },
     // Host Modal

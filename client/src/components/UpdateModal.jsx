@@ -21,6 +21,9 @@ export default function UpdateModal({ updateInfo, onClose, onCheckAgain }) {
     };
     const handleInstallStarted = () => {
       setInstalling(true);
+      setTimeout(() => {
+        if (typeof onClose === 'function') onClose();
+      }, 2000);
     };
     const handleError = (data) => {
       setBgError(data.message);
