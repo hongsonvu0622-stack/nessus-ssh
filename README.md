@@ -49,7 +49,3 @@ Tải file bộ cài đặt **`NexusSSH Setup x.x.x.exe`** từ trang Releases v
 
 ---
 
-## 📚 Tài Liệu Kỹ Thuật & Khởi Chạy Mã Nguồn (For Developers)
-
-Để xem hướng dẫn khởi chạy mã nguồn (`npm run electron`, `npm run dev`), cấu trúc hệ thống và quy trình đóng gói (`electron-builder`), vui lòng tham khảo:  
-👉 **[Tài Liệu Kiến Trúc & Khởi Chạy Mã Nguồn (docs/ARCHITECTURE.md)](./docs/ARCHITECTURE.md)**
