@@ -20,26 +20,55 @@ class SerialManager {
         }));
       }
     } catch (e) {
-      console.warn('serialport native list failed, falling back to fs /dev scan:', e.message);
+      console.warn('serialport native list failed, falling back to OS specific scan:', e.message);
     }
 
-    // Bulletproof fallback: scan macOS /dev directory for serial ports
+    // Windows fallback: scan COM ports via Windows Registry / PowerShell
+    if (process.platform === 'win32') {
+      try {
+        const { execSync } = require('child_process');
+        const output = execSync('reg query HKLM\\HARDWARE\\DEVICEMAP\\SERIALCOMM', { encoding: 'utf8' });
+        const lines = output.split('\n');
+        const comPorts = [];
+        for (const line of lines) {
+          const match = line.match(/COM\d+/i);
+          if (match) {
+            const comName = match[0].toUpperCase();
+            if (!comPorts.some(p => p.path === comName)) {
+              comPorts.push({
+                path: comName,
+                manufacturer: 'Windows Serial/USB COM Port',
+                serialNumber: '',
+                vendorId: '',
+                productId: ''
+              });
+            }
+          }
+        }
+        if (comPorts.length > 0) return comPorts;
+      } catch (winErr) {
+        console.warn('Windows reg query serial scan error:', winErr.message);
+      }
+    }
+
+    // macOS/Linux fallback: scan /dev directory for serial ports
     try {
-      const devFiles = fs.readdirSync('/dev');
-      const serialFiles = devFiles
-        .filter(f => f.startsWith('cu.') || f.startsWith('tty.usb') || f.startsWith('tty.serial'))
-        .map(f => ({
-          path: '/dev/' + f,
-          manufacturer: f.includes('usb') ? 'USB Serial Interface' : 'macOS Serial Device',
-          serialNumber: '',
-          vendorId: '',
-          productId: ''
-        }));
-      return serialFiles;
+      if (fs.existsSync('/dev')) {
+        const devFiles = fs.readdirSync('/dev');
+        return devFiles
+          .filter(f => f.startsWith('cu.') || f.startsWith('tty.usb') || f.startsWith('tty.serial'))
+          .map(f => ({
+            path: '/dev/' + f,
+            manufacturer: f.includes('usb') ? 'USB Serial Interface' : 'macOS/Linux Serial Device',
+            serialNumber: '',
+            vendorId: '',
+            productId: ''
+          }));
+      }
     } catch (err) {
       console.error('Error scanning /dev serial ports:', err);
-      return [];
     }
+    return [];
   }
 
   connect(sessionId, config, socket) {
