@@ -29,6 +29,32 @@
 
 ---
 
+## 📥 Hướng Dẫn Tải Về & Cài Đặt (Download & Installation)
+
+Tải xuống bản phát hành chính thức mới nhất cho **macOS (Intel & Apple Silicon M1/M2/M3)** và **Windows**:  
+👉 **[Trang Phát Hành NexusSSH Releases](https://github.com/hongsonvu0622-stack/nessus-ssh/releases)**
+
+### 🍏 Hướng dẫn cho người dùng macOS & Khắc phục thông báo Gatekeeper ("App is damaged")
+
+Khi tải file `.dmg` từ trình duyệt (Chrome, Safari, GitHub), cơ chế bảo mật **macOS Gatekeeper** sẽ tự động gắn cờ cách ly (`com.apple.quarantine`). Khi mở lên, macOS có thể báo lỗi giả là:  
+> *"NexusSSH is damaged and can't be opened. You should move it to the Trash."*
+
+#### Cách giải quyết cực nhanh (chỉ mất 3 giây):
+1. Kéo thả biểu tượng **NexusSSH** từ file `.dmg` vào thư mục **Applications**.
+2. Mở ứng dụng **Terminal** trên máy Mac (bấm `Command + Space` -> gõ `Terminal` -> Enter).
+3. Dán lệnh sau vào Terminal rồi nhấn Enter (nhập mật khẩu máy Mac khi được hỏi):
+   ```bash
+   sudo xattr -cr /Applications/NexusSSH.app
+   ```
+4. Bấm đúp mở **NexusSSH** trong Applications là ứng dụng chạy mượt mà ngay lập tức!
+
+---
+
+### 🪟 Hướng dẫn cho người dùng Windows
+Tải file bộ cài đặt **`NexusSSH Setup x.x.x.exe`** từ trang Releases, nhấp đúp để cài đặt ứng dụng vào hệ thống.
+
+---
+
 ## 🚀 Hướng Dẫn Khởi Chạy (Chế Độ Phát Triển - Dev Mode)
 
 ### 1. Cài đặt các gói phụ thuộc
