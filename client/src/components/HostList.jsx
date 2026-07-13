@@ -467,23 +467,25 @@ export default function HostList({
             </p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'nowrap' }}>
             {/* View Mode Switch */}
-            <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', padding: '3px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
+            <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', padding: '3px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
               <button
                 onClick={() => setViewMode('folder')}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
-                  padding: '6px 12px',
+                  padding: '6px 11px',
                   borderRadius: '6px',
                   fontSize: '12px',
                   fontWeight: 600,
                   border: 'none',
                   cursor: 'pointer',
                   background: viewMode === 'folder' ? 'var(--accent)' : 'transparent',
-                  color: '#fff'
+                  color: '#fff',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0
                 }}
               >
                 <FolderTree size={14} /> {t('hostList.byFolder')}
@@ -494,25 +496,27 @@ export default function HostList({
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
-                  padding: '6px 12px',
+                  padding: '6px 11px',
                   borderRadius: '6px',
                   fontSize: '12px',
                   fontWeight: 600,
                   border: 'none',
                   cursor: 'pointer',
                   background: viewMode === 'grid' ? 'var(--accent)' : 'transparent',
-                  color: '#fff'
+                  color: '#fff',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0
                 }}
               >
                 <LayoutGrid size={14} /> {t('hostList.allHostsGrid')}
               </button>
             </div>
 
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: 'relative', flexShrink: 0 }}>
               <button
                 onClick={() => setShowImportMenu(!showImportMenu)}
                 className="btn-secondary"
-                style={{ fontSize: '12.5px', padding: '7px 11px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                style={{ fontSize: '12.5px', padding: '7px 11px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', flexShrink: 0 }}
               >
                 <Upload size={14} color="#10b981" />
                 <span>Import</span>
@@ -577,11 +581,11 @@ export default function HostList({
               )}
             </div>
 
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: 'relative', flexShrink: 0 }}>
               <button
                 onClick={() => setShowExportMenu(!showExportMenu)}
                 className="btn-secondary"
-                style={{ fontSize: '12.5px', padding: '7px 11px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                style={{ fontSize: '12.5px', padding: '7px 11px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', flexShrink: 0 }}
               >
                 <Download size={14} color="#38bdf8" />
                 <span>Export</span>
@@ -654,7 +658,9 @@ export default function HostList({
                 gap: '6px',
                 borderColor: 'rgba(167, 139, 250, 0.4)',
                 color: '#a78bfa',
-                background: 'rgba(167, 139, 250, 0.08)'
+                background: 'rgba(167, 139, 250, 0.08)',
+                whiteSpace: 'nowrap',
+                flexShrink: 0
               }}
               title={t('hostList.scanSerialTooltip')}
             >
@@ -665,10 +671,10 @@ export default function HostList({
             <button
               onClick={() => onOpenModal(null)}
               className="btn-primary"
-              style={{ fontSize: '13px', padding: '7px 14px' }}
+              style={{ fontSize: '13px', padding: '7px 14px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', flexShrink: 0 }}
             >
               <Plus size={16} />
-              {t('hostList.newConnection')}
+              <span>{t('hostList.newConnection')}</span>
             </button>
           </div>
         </div>
