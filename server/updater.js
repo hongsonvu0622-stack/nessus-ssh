@@ -186,7 +186,13 @@ function installUpdateAndCleanup(fileName) {
 
     const platform = os.platform();
     let cmd = `open "${filePath}"`;
-    if (platform === 'win32') {
+    if (platform === 'darwin') {
+      if (fileName.endsWith('.zip')) {
+        cmd = `ditto -x -k "${filePath}" /Applications && rm -f "${filePath}" && open /Applications/NexusSSH.app`;
+      } else if (fileName.endsWith('.dmg')) {
+        cmd = `MOUNT_OUT=$(hdiutil attach "${filePath}" -nobrowse) && VOL_PATH=$(echo "$MOUNT_OUT" | grep -o '/Volumes/.*' | head -n 1) && if [ -n "$VOL_PATH" ]; then APP_PATH=$(find "$VOL_PATH" -maxdepth 1 -name "*.app" | head -n 1); if [ -n "$APP_PATH" ]; then cp -R "$APP_PATH" /Applications/; fi; hdiutil detach "$VOL_PATH" -quiet; fi && rm -f "${filePath}" && open /Applications/NexusSSH.app`;
+      }
+    } else if (platform === 'win32') {
       if (fileName.endsWith('.msi')) {
         cmd = `start "" msiexec /i "${filePath}"`;
       } else {

@@ -5,15 +5,16 @@
   "main": "electron-main.js",
   "scripts": {
     "postinstall": "npm install --prefix client",
+    "sync-version": "node scripts/sync-version.js",
     "start": "node server/server.js",
     "dev": "concurrently \"node server/server.js\" \"npm run dev --prefix client\"",
     "electron": "concurrently \"node server/server.js\" \"npm run dev --prefix client\" \"node scripts/start-electron.js\"",
-    "build": "npm run build --prefix client",
-    "dist": "npm run build --prefix client && npx electron-builder",
-    "dist:mac": "npm run build --prefix client && npx electron-builder --mac --x64 --arm64",
-    "dist:win": "npm run build --prefix client && npx electron-builder --win --x64 --arm64",
-    "dist:win:x64": "npm run build --prefix client && npx electron-builder --win --x64",
-    "dist:linux": "npm run build --prefix client && npx electron-builder --linux"
+    "build": "node scripts/sync-version.js && npm run build --prefix client",
+    "dist": "node scripts/sync-version.js && npm run build --prefix client && npx electron-builder",
+    "dist:mac": "node scripts/sync-version.js && npm run build --prefix client && npx electron-builder --mac --x64 --arm64",
+    "dist:win": "node scripts/sync-version.js && npm run build --prefix client && npx electron-builder --win --x64 --arm64",
+    "dist:win:x64": "node scripts/sync-version.js && npm run build --prefix client && npx electron-builder --win --x64",
+    "dist:linux": "node scripts/sync-version.js && npm run build --prefix client && npx electron-builder --linux"
   },
   "build": {
     "appId": "com.nexusssh.app",
@@ -48,6 +49,13 @@
     "mac": {
       "icon": "build/icon.icns",
       "target": [
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
         {
           "target": "dmg",
           "arch": [

@@ -65,12 +65,12 @@ export default function UpdateModal({ updateInfo, onClose, onCheckAgain }) {
     if (isWin) {
       asset = assets.find(a => a.name.endsWith('.exe') || a.name.endsWith('.msi')) || assets.find(a => a.name.endsWith('.zip'));
     } else if (isMac) {
-      asset = assets.find(a => a.name.endsWith('.dmg') || a.name.endsWith('.pkg')) || assets.find(a => a.name.endsWith('.zip'));
+      asset = assets.find(a => a.name.endsWith('.zip')) || assets.find(a => a.name.endsWith('.dmg') || a.name.endsWith('.pkg'));
     } else {
       asset = assets.find(a => a.name.endsWith('.AppImage') || a.name.endsWith('.deb')) || assets.find(a => a.name.endsWith('.zip'));
     }
 
-    const fallbackExt = isWin ? 'exe' : isMac ? 'dmg' : 'AppImage';
+    const fallbackExt = isWin ? 'exe' : isMac ? 'zip' : 'AppImage';
     const chosenAsset = asset || assets[0];
     const targetUrl = chosenAsset ? chosenAsset.downloadUrl : downloadUrl;
     const fileName = chosenAsset ? chosenAsset.name : `NexusSSH-${latestVersion}.${fallbackExt}`;
