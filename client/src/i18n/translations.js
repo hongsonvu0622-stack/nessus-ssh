@@ -21,7 +21,7 @@ export const translations = {
       pageSubTitle: 'Quản lý máy chủ theo Thư mục Nhóm, nhập xuất bảng tính Excel & truy cập Terminal',
       byFolder: 'Thư mục',
       allHostsGrid: 'Tất cả',
-      createGroupBtn: '+ Tạo Thư mục Nhóm',
+      createGroupBtn: 'Tạo Thư mục Nhóm',
       searchPlaceholder: 'Tìm kiếm máy chủ, IP, nhãn hoặc nhóm...',
       newConnection: 'Kết Nối',
       scanSerial: 'Serial',
@@ -38,14 +38,14 @@ export const translations = {
       filterSerial: 'Serial Console',
       filterLocal: 'Local Shell',
       serverCount: 'máy chủ',
-      addHostBtn: '+ Thêm Host',
+      addHostBtn: 'Thêm Host',
       openTerminalBtn: 'Mở Terminal',
       connect: 'Kết Nối',
       edit: 'Chỉnh sửa',
       delete: 'Xóa kết nối',
       noHosts: 'Chưa có kết nối nào. Nhấn "+ Thêm Máy Chủ" hoặc nhập từ ~/.ssh/config để bắt đầu!',
       emptyFolderMsg: 'Thư mục này chưa có máy chủ nào.',
-      addHostToGroupBtn: '+ Thêm Host vào nhóm này'
+      addHostToGroupBtn: 'Thêm Host vào nhóm này'
     },
     // Terminal Tab
     terminal: {
@@ -154,7 +154,7 @@ export const translations = {
       scanning: 'Đang quét cổng Serial (USB / COM / UART)...',
       noPorts: 'Không tìm thấy cổng Serial nào đang kết nối. Hãy cắm cáp USB Console / COM port vào máy tính và bấm Refresh.',
       connectNow: 'Kết nối ngay',
-      saveHost: '+ Lưu vào danh sách Host',
+      saveHost: 'Lưu vào danh sách Host',
       refresh: 'Làm mới',
       baud: 'baud',
       save: 'Lưu'
@@ -194,7 +194,7 @@ export const translations = {
       pageSubTitle: 'Manage servers by group folders, import/export Excel spreadsheets & launch terminals',
       byFolder: 'Folders',
       allHostsGrid: 'All',
-      createGroupBtn: '+ New Group',
+      createGroupBtn: 'New Group',
       searchPlaceholder: 'Search servers, IP, tags or groups...',
       newConnection: 'Connection',
       scanSerial: 'Serial',
@@ -211,14 +211,14 @@ export const translations = {
       filterSerial: 'Serial Console',
       filterLocal: 'Local Shell',
       serverCount: 'servers',
-      addHostBtn: '+ Add Host',
+      addHostBtn: 'Add Host',
       openTerminalBtn: 'Open Terminal',
       connect: 'Connect',
       edit: 'Edit',
       delete: 'Delete connection',
       noHosts: 'No connections yet. Click "+ New Connection" or import from ~/.ssh/config to get started!',
       emptyFolderMsg: 'This folder has no servers yet.',
-      addHostToGroupBtn: '+ Add Host to this group'
+      addHostToGroupBtn: 'Add Host to this group'
     },
     // Terminal Tab
     terminal: {
@@ -327,7 +327,7 @@ export const translations = {
       scanning: 'Scanning Serial ports (USB / COM / UART)...',
       noPorts: 'No connected Serial ports found. Plug in your USB Console cable / COM port and click Refresh.',
       connectNow: 'Connect Now',
-      saveHost: '+ Save to Host list',
+      saveHost: 'Save to Host list',
       refresh: 'Refresh',
       baud: 'baud',
       save: 'Save'
