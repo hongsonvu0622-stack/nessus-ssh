@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { X, Server, Usb, Terminal, Save, KeyRound, RefreshCw } from 'lucide-react';
 import { fetchLocalKeys, fetchSerialPorts } from '../services/socket';
+import { useI18n } from '../i18n/I18nContext.jsx';
 
 export default function HostModal({ initialData, groups, onClose, onSave }) {
+  const { lang } = useI18n();
   const [protocol, setProtocol] = useState(initialData?.protocol || 'ssh');
   const [name, setName] = useState(initialData?.name || '');
   const [group, setGroup] = useState(initialData?.group || (groups[0]?.name || 'Production'));
@@ -340,11 +342,11 @@ export default function HostModal({ initialData, groups, onClose, onSave }) {
 
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                      Passphrase mở khóa Private Key (Nếu có)
+                      {lang === 'vi' ? 'Passphrase mở khóa Private Key (Nếu có)' : 'SSH Key Passphrase (Optional)'}
                     </label>
                     <input
                       type="password"
-                      placeholder="Mật khẩu mở khóa khóa SSH (để trống nếu hỏi khi kết nối hoặc không có)"
+                      placeholder={lang === 'vi' ? 'Mật khẩu mở khóa khóa SSH (để trống nếu hỏi khi kết nối hoặc không có)' : 'Passphrase to decrypt private key (leave blank to prompt on connect)'}
                       value={passphrase}
                       onChange={e => setPassphrase(e.target.value)}
                       style={inputStyle}
@@ -361,7 +363,11 @@ export default function HostModal({ initialData, groups, onClose, onSave }) {
                       borderRadius: '8px',
                       border: '1px solid rgba(245, 158, 11, 0.25)'
                     }}>
-                      <span>🔐 Nếu khóa SSH có Passphrase nhưng để trống, ứng dụng sẽ tự động hiện hộp thoại hỏi Passphrase khi kết nối</span>
+                      <span>
+                        {lang === 'vi'
+                          ? '🔐 Nếu khóa SSH có Passphrase nhưng để trống, ứng dụng sẽ tự động hiện hộp thoại hỏi Passphrase khi kết nối'
+                          : '🔐 If the key requires a passphrase and left blank, you will be prompted securely when connecting'}
+                      </span>
                     </div>
                   </div>
                 </div>

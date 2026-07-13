@@ -1,7 +1,9 @@
 import React from 'react';
 import { Sparkles, RefreshCw, Download, CheckCircle2, AlertCircle, X, ExternalLink, ArrowRight } from 'lucide-react';
+import { useI18n } from '../i18n/I18nContext.jsx';
 
 export default function UpdateModal({ updateInfo, onClose, onCheckAgain }) {
+  const { lang } = useI18n();
   if (!updateInfo) return null;
 
   const {
@@ -55,7 +57,7 @@ export default function UpdateModal({ updateInfo, onClose, onCheckAgain }) {
             </div>
             <div>
               <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>
-                Cập Nhật Phần Mềm (Software Update)
+                {lang === 'vi' ? 'Cập Nhật Phần Mềm' : 'Software Update'}
               </h2>
               <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
                 NexusSSH Pro — Cyber Glass Edition
@@ -98,16 +100,16 @@ export default function UpdateModal({ updateInfo, onClose, onCheckAgain }) {
             <div>
               <div style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>
                 {isChecking
-                  ? 'Đang kiểm tra phiên bản mới...'
+                  ? (lang === 'vi' ? 'Đang kiểm tra phiên bản mới...' : 'Checking for new release...')
                   : isUpdateAvailable
-                    ? `Phát hiện phiên bản mới: v${latestVersion}!`
+                    ? (lang === 'vi' ? `Phát hiện phiên bản mới: v${latestVersion}!` : `New version available: v${latestVersion}!`)
                     : status === 'error'
-                      ? 'Lỗi kiểm tra cập nhật'
-                      : 'Bạn đang sử dụng phiên bản mới nhất!'}
+                      ? (lang === 'vi' ? 'Lỗi kiểm tra cập nhật' : 'Update check error')
+                      : (lang === 'vi' ? 'Bạn đang sử dụng phiên bản mới nhất!' : 'You are running the latest version!')}
               </div>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                Phiên bản hiện tại: <b>v{currentVersion}</b>
-                {isUpdateAvailable && <span>  →  Mới nhất: <b style={{ color: '#818cf8' }}>v{latestVersion}</b></span>}
+                {lang === 'vi' ? 'Phiên bản hiện tại: ' : 'Current version: '}<b>v{currentVersion}</b>
+                {isUpdateAvailable && <span>  →  {lang === 'vi' ? 'Mới nhất: ' : 'Latest: '}<b style={{ color: '#818cf8' }}>v{latestVersion}</b></span>}
               </div>
             </div>
           </div>
@@ -119,7 +121,7 @@ export default function UpdateModal({ updateInfo, onClose, onCheckAgain }) {
             style={{ padding: '6px 12px', fontSize: '12px' }}
           >
             <RefreshCw size={13} className={isChecking ? 'animate-spin' : ''} />
-            Kiểm tra lại
+            {lang === 'vi' ? 'Kiểm tra lại' : 'Check again'}
           </button>
         </div>
 
@@ -134,7 +136,7 @@ export default function UpdateModal({ updateInfo, onClose, onCheckAgain }) {
             overflowY: 'auto'
           }}>
             <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#818cf8', marginBottom: '8px' }}>
-              📝 Ghi chú thay đổi ({releaseName}):
+              {lang === 'vi' ? `📝 Ghi chú thay đổi (${releaseName}):` : `📝 Release notes (${releaseName}):`}
             </h4>
             <pre style={{
               whiteSpace: 'pre-wrap',
@@ -159,7 +161,7 @@ export default function UpdateModal({ updateInfo, onClose, onCheckAgain }) {
         {/* Footer Actions */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '4px' }}>
           <button onClick={onClose} className="btn-secondary">
-            Đóng
+            {lang === 'vi' ? 'Đóng' : 'Close'}
           </button>
 
           {isUpdateAvailable && (
@@ -171,7 +173,7 @@ export default function UpdateModal({ updateInfo, onClose, onCheckAgain }) {
               style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px' }}
             >
               <Download size={16} />
-              Tải Về & Cập Nhật Ngay
+              {lang === 'vi' ? 'Tải Về & Cập Nhật Ngay' : 'Download & Update Now'}
             </a>
           )}
         </div>

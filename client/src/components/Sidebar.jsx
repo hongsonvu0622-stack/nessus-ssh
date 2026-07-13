@@ -307,10 +307,12 @@ export default function Sidebar({ activeView, setActiveView, activeTabsCount, on
             transition: 'all 0.2s',
             boxShadow: hasNewUpdate ? '0 0 16px rgba(99, 102, 241, 0.4)' : 'none'
           }}
-          title="Kiểm tra phiên bản mới từ GitHub"
+          title={lang === 'vi' ? 'Kiểm tra phiên bản mới từ GitHub' : 'Check for new release on GitHub'}
         >
           <RefreshCw size={13} />
-          {hasNewUpdate ? '✨ Có bản cập nhật mới' : '🔄 Kiểm tra cập nhật'}
+          {hasNewUpdate
+            ? (lang === 'vi' ? '✨ Có bản cập nhật mới' : '✨ New update available')
+            : (lang === 'vi' ? '🔄 Kiểm tra cập nhật' : '🔄 Check for updates')}
         </button>
       </div>
 
