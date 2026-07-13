@@ -4,14 +4,9 @@ Tài liệu này tổng hợp toàn bộ bối cảnh yêu cầu (Prompt), kế 
 
 ---
 
-## I. YÊU CẦU & BỐI CẢNH (PROMPT & REQUIREMENT)
+## I. BỐI CẢNH ( REQUIREMENT)
 
-### 1. Yêu cầu của người dùng (User Prompt)
-> *"Là tính năng hỗ trợ RDP được không, mô tả trước khi làm nhé."*  
-> *"MacBook thì dùng Remote Desktop app của Mac chứ."*  
-> *"Không truyền được password hả, tôi bấm nhưng vẫn hỏi pass."*
-
-### 2. Bối cảnh hệ thống
+### 1. Bối cảnh hệ thống
 Trước phiên bản 1.0.2, NexusSSH hỗ trợ 3 giao thức quản lý chính:
 - **SSH Server** (thư viện `ssh2` thuần JS + `xterm.js`)
 - **Serial Console** (Cổng USB-to-Serial/UART qua `/dev/cu.*` hoặc `COM*`)
