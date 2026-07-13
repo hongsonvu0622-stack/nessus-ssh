@@ -56,11 +56,13 @@ function checkLatestRelease() {
                 releaseName: release.name || `NexusSSH v${latestVersion}`,
                 publishedAt: release.published_at || null,
                 downloadUrl: release.html_url || `https://github.com/${GITHUB_REPO}/releases/latest`,
-                assets: (release.assets || []).map(a => ({
-                  name: a.name,
-                  downloadUrl: a.browser_download_url,
-                  sizeBytes: a.size
-                }))
+                assets: (release.assets || [])
+                  .filter(a => !a.name.endsWith('.blockmap') && !a.name.endsWith('.yml') && !a.name.endsWith('.yaml'))
+                  .map(a => ({
+                    name: a.name,
+                    downloadUrl: a.browser_download_url,
+                    sizeBytes: a.size
+                  }))
               });
             } catch (err) {
               resolve({

@@ -58,20 +58,21 @@ export default function UpdateModal({ updateInfo, onClose, onCheckAgain }) {
   const isChecking = status === 'checking';
 
   const handleStartBackgroundDownload = () => {
+    const validAssets = (assets || []).filter(a => !a.name.endsWith('.blockmap') && !a.name.endsWith('.yml') && !a.name.endsWith('.yaml'));
     const isWin = navigator.userAgent.includes('Win');
     const isMac = navigator.userAgent.includes('Mac');
 
     let asset;
     if (isWin) {
-      asset = assets.find(a => a.name.endsWith('.exe') || a.name.endsWith('.msi')) || assets.find(a => a.name.endsWith('.zip'));
+      asset = validAssets.find(a => a.name.endsWith('.exe') || a.name.endsWith('.msi')) || validAssets.find(a => a.name.endsWith('.zip'));
     } else if (isMac) {
-      asset = assets.find(a => a.name.endsWith('.zip')) || assets.find(a => a.name.endsWith('.dmg') || a.name.endsWith('.pkg'));
+      asset = validAssets.find(a => a.name.endsWith('.zip')) || validAssets.find(a => a.name.endsWith('.dmg') || a.name.endsWith('.pkg'));
     } else {
-      asset = assets.find(a => a.name.endsWith('.AppImage') || a.name.endsWith('.deb')) || assets.find(a => a.name.endsWith('.zip'));
+      asset = validAssets.find(a => a.name.endsWith('.AppImage') || a.name.endsWith('.deb')) || validAssets.find(a => a.name.endsWith('.zip'));
     }
 
     const fallbackExt = isWin ? 'exe' : isMac ? 'zip' : 'AppImage';
-    const chosenAsset = asset || assets[0];
+    const chosenAsset = asset || validAssets[0];
     const targetUrl = chosenAsset ? chosenAsset.downloadUrl : downloadUrl;
     const fileName = chosenAsset ? chosenAsset.name : `NexusSSH-${latestVersion}.${fallbackExt}`;
 
