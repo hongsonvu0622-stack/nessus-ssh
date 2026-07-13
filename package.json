@@ -19,6 +19,9 @@
     "appId": "com.nexusssh.app",
     "productName": "NexusSSH",
     "npmRebuild": false,
+    "releaseInfo": {
+      "releaseNotesFile": "docs/RELEASE_NOTES_v1.0.1.md"
+    },
     "publish": [
       {
         "provider": "github",
@@ -35,6 +38,7 @@
       "electron-main.js",
       "server/**/*",
       "client/dist/**/*",
+      "docs/**/*",
       "package.json"
     ],
     "asarUnpack": [
