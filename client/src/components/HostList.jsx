@@ -712,7 +712,7 @@ export default function HostList({
                 { id: 'all', label: t('hostList.filterAll') },
                 { id: 'ssh', label: t('hostList.filterSsh') },
                 { id: 'serial', label: t('hostList.filterSerial') },
-                { id: 'rdp', label: t('hostList.filterRdp') },
+                // { id: 'rdp', label: t('hostList.filterRdp') }, // Tạm ẩn RDP
                 { id: 'local', label: t('hostList.filterLocal') }
               ].map(item => (
                 <button

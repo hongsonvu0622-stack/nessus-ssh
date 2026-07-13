@@ -79,29 +79,13 @@ const TERMINAL_THEMES = {
   }
 };
 
-export default function TerminalTab({
-  tabs,
-  activeTabId,
-  setActiveTabId,
-  onCloseTab,
-  snippets,
-  onOpenSftp
-}) {
-  const { t } = useI18n();
+function SingleTerminalPane({ tab, isActive, themeKey, onCloseTab, setStatusText, setAuthModal }) {
   const containerRef = useRef(null);
   const xtermRef = useRef(null);
   const fitAddonRef = useRef(null);
-
-  const activeTab = tabs.find(t => t.sessionId === activeTabId) || tabs[0];
-  const [themeKey, setThemeKey] = useState('nexus-cyber-dark');
-  const [showSnippets, setShowSnippets] = useState(false);
-  const [statusText, setStatusText] = useState('Connecting...');
-  const [authModal, setAuthModal] = useState(null);
-
-  const connectedSessionsRef = useRef(new Set());
+  const connectedRef = useRef(false);
   const statusPrintedRef = useRef(new Set());
 
-  // Update theme dynamically without reconnecting session
   useEffect(() => {
     if (xtermRef.current) {
       xtermRef.current.options.theme = TERMINAL_THEMES[themeKey];
@@ -109,9 +93,15 @@ export default function TerminalTab({
   }, [themeKey]);
 
   useEffect(() => {
-    if (!activeTab || !containerRef.current) return;
+    if (isActive && fitAddonRef.current) {
+      try {
+        fitAddonRef.current.fit();
+      } catch (e) {}
+    }
+  }, [isActive]);
 
-    // Clear previous xterm DOM
+  useEffect(() => {
+    if (!containerRef.current) return;
     containerRef.current.innerHTML = '';
 
     const term = new Xterm({
@@ -138,29 +128,27 @@ export default function TerminalTab({
         fitAddon.fit();
         if (term.cols && term.rows) {
           socket.emit('terminal:resize', {
-            sessionId: activeTab.sessionId,
+            sessionId: tab.sessionId,
             cols: term.cols,
             rows: term.rows,
-            protocol: activeTab.config?.protocol || 'ssh'
+            protocol: tab.config?.protocol || 'ssh'
           });
         }
       } catch (e) {}
     };
 
-    // Send connect event only once per sessionId, passing actual terminal cols & rows
-    if (!connectedSessionsRef.current.has(activeTab.sessionId)) {
-      connectedSessionsRef.current.add(activeTab.sessionId);
+    if (!connectedRef.current) {
+      connectedRef.current = true;
       socket.emit('terminal:connect', {
-        sessionId: activeTab.sessionId,
+        sessionId: tab.sessionId,
         config: {
-          ...activeTab.config,
+          ...tab.config,
           cols: term.cols || 120,
           rows: term.rows || 40
         }
       });
     }
 
-    // Auto-fit after flex container finishes rendering layout
     const timer1 = setTimeout(syncDimensions, 100);
     const timer2 = setTimeout(syncDimensions, 350);
 
@@ -169,23 +157,22 @@ export default function TerminalTab({
     });
     resizeObserver.observe(containerRef.current);
 
-    // Listen to input from terminal
     const inputDisposable = term.onData((data) => {
       socket.emit('terminal:input', {
-        sessionId: activeTab.sessionId,
+        sessionId: tab.sessionId,
         data,
-        protocol: activeTab.config?.protocol || 'ssh'
+        protocol: tab.config?.protocol || 'ssh'
       });
     });
 
-    // Listen to output from backend
     const outputListener = ({ sessionId, data }) => {
-      if (sessionId === activeTab.sessionId) {
+      if (sessionId === tab.sessionId) {
         term.write(data);
       }
     };
 
     const statusListener = ({ sessionId, status, message }) => {
+      if (sessionId !== tab.sessionId) return;
       if (status === 'closed') {
         const key = `${sessionId}-closed`;
         if (!statusPrintedRef.current.has(key)) {
@@ -198,20 +185,18 @@ export default function TerminalTab({
         return;
       }
 
-      if (sessionId === activeTab.sessionId) {
-        setStatusText(message);
-        const statusKey = `${sessionId}-${status}-${message}`;
-        if (status === 'connected' && !statusPrintedRef.current.has(statusKey)) {
-          statusPrintedRef.current.add(statusKey);
-          term.write(`\r\n\x1b[32m✔ ${message}\x1b[0m\r\n`);
-        } else if (status === 'error') {
-          term.write(`\r\n\x1b[31m✖ ${message}\x1b[0m\r\n`);
-        }
+      setStatusText(message);
+      const statusKey = `${sessionId}-${status}-${message}`;
+      if (status === 'connected' && !statusPrintedRef.current.has(statusKey)) {
+        statusPrintedRef.current.add(statusKey);
+        term.write(`\r\n\x1b[32m✔ ${message}\x1b[0m\r\n`);
+      } else if (status === 'error') {
+        term.write(`\r\n\x1b[31m✖ ${message}\x1b[0m\r\n`);
       }
     };
 
     const authRequiredListener = async ({ sessionId, host, username, message, failedAuthType }) => {
-      if (sessionId === activeTab.sessionId) {
+      if (sessionId === tab.sessionId) {
         let keys = [];
         try {
           keys = await fetchLocalKeys();
@@ -249,7 +234,37 @@ export default function TerminalTab({
         term.dispose();
       } catch (e) {}
     };
-  }, [activeTabId]);
+  }, [tab.sessionId]);
+
+  return (
+    <div
+      ref={containerRef}
+      style={{
+        flex: 1,
+        display: isActive ? 'flex' : 'none',
+        flexDirection: 'column',
+        background: TERMINAL_THEMES[themeKey].background,
+        padding: '12px',
+        overflow: 'hidden'
+      }}
+    />
+  );
+}
+
+export default function TerminalTab({
+  tabs,
+  activeTabId,
+  setActiveTabId,
+  onCloseTab,
+  snippets,
+  onOpenSftp
+}) {
+  const { t } = useI18n();
+  const activeTab = tabs.find(t => t.sessionId === activeTabId) || tabs[0];
+  const [themeKey, setThemeKey] = useState('nexus-cyber-dark');
+  const [showSnippets, setShowSnippets] = useState(false);
+  const [statusText, setStatusText] = useState('Ready');
+  const [authModal, setAuthModal] = useState(null);
 
   // Run Snippet inside current terminal
   const handleRunSnippet = (command) => {
@@ -430,16 +445,18 @@ export default function TerminalTab({
         </div>
       </div>
 
-      {/* Terminal Canvas */}
-      <div
-        ref={containerRef}
-        style={{
-          flex: 1,
-          background: TERMINAL_THEMES[themeKey].background,
-          padding: '12px',
-          overflow: 'hidden'
-        }}
-      />
+      {/* Terminal Canvases - One per tab to preserve buffer & scrollback */}
+      {tabs.map(t => (
+        <SingleTerminalPane
+          key={t.sessionId}
+          tab={t}
+          isActive={t.sessionId === activeTabId}
+          themeKey={themeKey}
+          onCloseTab={onCloseTab}
+          setStatusText={setStatusText}
+          setAuthModal={setAuthModal}
+        />
+      ))}
 
       {/* Interactive SSH Password / Auth Prompt Modal */}
       {authModal && (

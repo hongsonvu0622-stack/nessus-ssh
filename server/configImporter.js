@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { exec } = require('child_process');
+const { exec, execFile } = require('child_process');
 
 function parseSshConfig() {
   const configPath = path.join(os.homedir(), '.ssh', 'config');
@@ -116,10 +116,11 @@ function generateSshKey({ name, type = 'ed25519', comment = 'nexusssh@macos' }) 
       return reject(new Error(`Tệp khóa ${fullPath} đã tồn tại!`));
     }
 
-    const typeArg = type.toLowerCase() === 'rsa' ? '-t rsa -b 4096' : '-t ed25519';
-    const cmd = `ssh-keygen ${typeArg} -f "${fullPath}" -N "" -C "${comment}"`;
+    const args = type.toLowerCase() === 'rsa'
+      ? ['-t', 'rsa', '-b', '4096', '-f', fullPath, '-N', '', '-C', comment]
+      : ['-t', 'ed25519', '-f', fullPath, '-N', '', '-C', comment];
 
-    exec(cmd, (err, stdout, stderr) => {
+    execFile('ssh-keygen', args, (err, stdout, stderr) => {
       if (err) {
         return reject(new Error(stderr || err.message));
       }

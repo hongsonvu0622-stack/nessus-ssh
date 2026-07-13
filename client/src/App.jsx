@@ -125,6 +125,13 @@ export default function App() {
   };
 
   const handleCloseTab = (sessionId) => {
+    const targetTab = tabs.find(t => t.sessionId === sessionId);
+    if (targetTab) {
+      socket.emit('terminal:disconnect', {
+        sessionId,
+        protocol: targetTab.config?.protocol || 'ssh'
+      });
+    }
     setTabs(prev => {
       const remaining = prev.filter(t => t.sessionId !== sessionId);
       if (activeTabId === sessionId) {

@@ -169,7 +169,7 @@ export default function HostModal({ initialData, groups, onClose, onSave }) {
             {[
               { id: 'ssh', label: 'SSH', icon: Server },
               { id: 'serial', label: 'Serial', icon: Usb },
-              { id: 'rdp', label: t('hostModal.rdpTab'), icon: Monitor },
+              // { id: 'rdp', label: t('hostModal.rdpTab'), icon: Monitor }, // Tạm ẩn RDP
               { id: 'local', label: 'Local Shell', icon: Terminal }
             ].map((tab) => {
               const Icon = tab.icon;

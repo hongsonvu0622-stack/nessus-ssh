@@ -186,8 +186,11 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.activeSessions = new Map();
+
   socket.on('terminal:connect', ({ sessionId, config }) => {
     console.log(`Connecting session ${sessionId} [protocol: ${config.protocol || 'ssh'}]`);
+    socket.activeSessions.set(sessionId, config.protocol || 'ssh');
     if (config.protocol === 'serial') {
       serialManager.connect(sessionId, config, socket);
     } else if (config.protocol === 'local') {
@@ -221,6 +224,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('terminal:disconnect', ({ sessionId, protocol }) => {
+    socket.activeSessions.delete(sessionId);
     if (protocol === 'serial') {
       serialManager.disconnect(sessionId);
     } else if (protocol === 'local') {
@@ -248,6 +252,18 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);
+    for (const [sessionId, protocol] of socket.activeSessions.entries()) {
+      try {
+        if (protocol === 'serial') {
+          serialManager.disconnect(sessionId);
+        } else if (protocol === 'local') {
+          localPtyManager.disconnect(sessionId);
+        } else {
+          sshManager.disconnect(sessionId);
+        }
+      } catch (e) {}
+    }
+    socket.activeSessions.clear();
   });
 });
 

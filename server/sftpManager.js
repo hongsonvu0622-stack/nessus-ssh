@@ -1,5 +1,6 @@
 const { Client } = require('ssh2');
 const fs = require('fs');
+const cryptoUtil = require('./cryptoUtil');
 
 class SftpManager {
   connectSftp(config) {
@@ -28,12 +29,13 @@ class SftpManager {
       if (config.authType === 'key' || config.keyPath) {
         try {
           connectConfig.privateKey = fs.readFileSync(config.keyPath);
-          if (config.passphrase) connectConfig.passphrase = config.passphrase;
+          const pass = cryptoUtil.decryptPassword(config.passphrase || '');
+          if (pass) connectConfig.passphrase = pass;
         } catch (err) {
           return reject(err);
         }
       } else {
-        connectConfig.password = config.password || '';
+        connectConfig.password = cryptoUtil.decryptPassword(config.password || '');
       }
 
       conn.connect(connectConfig);
