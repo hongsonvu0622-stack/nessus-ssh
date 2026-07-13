@@ -7,7 +7,7 @@
     "postinstall": "npm install --prefix client",
     "start": "node server/server.js",
     "dev": "concurrently \"node server/server.js\" \"npm run dev --prefix client\"",
-    "electron": "concurrently \"node server/server.js\" \"npm run dev --prefix client\" \"sleep 3 && electron .\"",
+    "electron": "concurrently \"node server/server.js\" \"npm run dev --prefix client\" \"node scripts/start-electron.js\"",
     "build": "npm run build --prefix client",
     "dist": "npm run build --prefix client && npx electron-builder",
     "dist:mac": "npm run build --prefix client && npx electron-builder --mac --x64 --arm64",
