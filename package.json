@@ -21,8 +21,9 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "vuhongson97",
-        "repo": "nessus-ssh"
+        "owner": "hongsonvu0622-stack",
+        "repo": "nessus-ssh",
+        "releaseType": "release"
       }
     ],
     "directories": {

@@ -33,3 +33,13 @@ build/*.icns
 # OS metadata
 .DS_Store
 Thumbs.db
+
+# Local private build scripts
+build-local.sh
+quick-release.sh
+*.private.sh
+
+# Environment variables & secrets
+.env
+.env.*
+scripts/upload-release.js
