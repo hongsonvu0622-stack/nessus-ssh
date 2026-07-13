@@ -7,7 +7,9 @@ import SftpBrowser from './components/SftpBrowser';
 import SnippetDrawer from './components/SnippetDrawer';
 import IdentityManager from './components/IdentityManager';
 import SerialScannerModal from './components/SerialScannerModal';
-import { fetchData, saveData, fetchImportConfig } from './services/socket';
+import UpdateModal from './components/UpdateModal';
+import { fetchData, saveData, fetchImportConfig, socket } from './services/socket';
+import { Sparkles, RefreshCw, CheckCircle2, AlertCircle, Download } from 'lucide-react';
 
 export default function App() {
   const [activeView, setActiveView] = useState('hosts');
@@ -28,6 +30,11 @@ export default function App() {
   // SFTP Explorer target
   const [activeSftpConfig, setActiveSftpConfig] = useState(null);
 
+  // Updater
+  const [updateInfo, setUpdateInfo] = useState(null);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [autoCheckUpdate, setAutoCheckUpdate] = useState(true);
+
   const loadAllData = async () => {
     try {
       const res = await fetchData();
@@ -44,6 +51,23 @@ export default function App() {
 
   useEffect(() => {
     loadAllData();
+
+    const onUpdateStatus = (info) => {
+      setUpdateInfo(info);
+    };
+
+    socket.on('updater:status', onUpdateStatus);
+
+    const timer = setTimeout(() => {
+      if (autoCheckUpdate) {
+        socket.emit('updater:check');
+      }
+    }, 5000);
+
+    return () => {
+      clearTimeout(timer);
+      socket.off('updater:status', onUpdateStatus);
+    };
   }, []);
 
   const persistData = async (newConnections, newGroups, newSnippets) => {
@@ -169,6 +193,11 @@ export default function App() {
         activeView={activeView}
         setActiveView={setActiveView}
         activeTabsCount={tabs.length}
+        hasNewUpdate={updateInfo?.status === 'update-available'}
+        onCheckUpdate={() => {
+          socket.emit('updater:check');
+          setShowUpdateModal(true);
+        }}
         onOpenNewTerminal={(shellType = 'zsh') => {
           let name = 'Local Shell';
           let shell = '/bin/zsh';
@@ -269,14 +298,157 @@ export default function App() {
         )}
 
         {activeView === 'settings' && (
-          <div style={{ padding: '32px', color: '#fff' }}>
-            <h1 style={{ fontSize: '22px', fontWeight: 700 }}>Settings</h1>
-            <p style={{ color: 'var(--text-muted)', marginTop: '8px' }}>
-              NexusSSH v1.0.0 Pro - Cấu hình ứng dụng, phím tắt và tuỳ chọn giao diện.
-            </p>
+          <div style={{ padding: '32px 36px', color: '#fff', maxWidth: '850px', overflowY: 'auto' }}>
+            <div style={{ marginBottom: '28px' }}>
+              <h1 style={{ fontSize: '24px', fontWeight: 700 }}>Cài Đặt & Cập Nhật Phần Mềm</h1>
+              <p style={{ color: 'var(--text-muted)', marginTop: '4px', fontSize: '13px' }}>
+                Quản lý phiên bản, kiểm tra cập nhật mới và cấu hình hệ thống NexusSSH Pro.
+              </p>
+            </div>
+
+            {/* Software Update Card */}
+            <div className="glass-panel" style={{
+              borderRadius: '16px',
+              padding: '24px',
+              border: '1px solid var(--border-color)',
+              marginBottom: '24px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <div style={{
+                    width: '52px',
+                    height: '52px',
+                    borderRadius: '14px',
+                    background: 'linear-gradient(135deg, #6366f1, #a855f7)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Sparkles size={26} color="#fff" />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '17px', fontWeight: 700, color: '#fff' }}>
+                      NexusSSH Pro — Cyber Glass Edition
+                    </div>
+                    <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      Phiên bản hiện tại: <b style={{ color: '#fff' }}>v{updateInfo?.currentVersion || '1.0.0'}</b>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    onClick={() => {
+                      socket.emit('updater:check');
+                      setShowUpdateModal(true);
+                    }}
+                    className="btn-primary"
+                    style={{ fontSize: '13px', padding: '10px 18px' }}
+                  >
+                    <RefreshCw size={15} /> Kiểm tra bản cập nhật mới
+                  </button>
+                </div>
+              </div>
+
+              {updateInfo && (
+                <div style={{
+                  marginTop: '18px',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  background: updateInfo.status === 'update-available' ? 'rgba(99, 102, 241, 0.15)' : 'rgba(255,255,255,0.04)',
+                  border: updateInfo.status === 'update-available' ? '1px solid rgba(99, 102, 241, 0.4)' : '1px solid var(--border-color)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}>
+                  <span style={{ fontSize: '13px', color: '#fff' }}>
+                    {updateInfo.status === 'update-available'
+                      ? `🎉 Phát hiện bản cập nhật mới v${updateInfo.latestVersion} từ GitHub!`
+                      : updateInfo.status === 'checking'
+                        ? '⏳ Đang kiểm tra phiên bản mới từ GitHub...'
+                        : '✔ Bạn đang sử dụng phiên bản mới nhất.'}
+                  </span>
+                  {updateInfo.status === 'update-available' && (
+                    <button
+                      onClick={() => setShowUpdateModal(true)}
+                      className="btn-secondary"
+                      style={{ fontSize: '12px', padding: '6px 12px' }}
+                    >
+                      Xem chi tiết & Tải về
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Auto Update Preference Card */}
+            <div className="glass-panel" style={{
+              borderRadius: '16px',
+              padding: '20px 24px',
+              border: '1px solid var(--border-color)'
+            }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={autoCheckUpdate}
+                  onChange={e => setAutoCheckUpdate(e.target.checked)}
+                  style={{ width: '18px', height: '18px', accentColor: 'var(--accent-primary)' }}
+                />
+                <div>
+                  <div style={{ fontSize: '14px', fontWeight: 600, color: '#fff' }}>
+                    Tự động kiểm tra bản cập nhật khi khởi động ứng dụng (Auto-Check Updates)
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                    Ứng dụng tự động thông báo khi có bản phát hành mới trên GitHub Releases.
+                  </div>
+                </div>
+              </label>
+            </div>
           </div>
         )}
       </main>
+
+      {/* Floating Notification Banner when New Update Available */}
+      {updateInfo?.status === 'update-available' && !showUpdateModal && (
+        <div
+          onClick={() => setShowUpdateModal(true)}
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            background: 'linear-gradient(135deg, #6366f1, #a855f7)',
+            borderRadius: '14px',
+            padding: '12px 18px',
+            boxShadow: '0 8px 30px rgba(99, 102, 241, 0.45)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            zIndex: 2500,
+            transition: 'transform 0.2s',
+            border: '1px solid rgba(255, 255, 255, 0.25)'
+          }}
+        >
+          <Sparkles size={18} color="#fff" />
+          <div>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>
+              Phiên bản mới v{updateInfo.latestVersion} đã sẵn sàng!
+            </div>
+            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.85)' }}>
+              Nhấp để xem chi tiết và tải về
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Update Modal */}
+      {showUpdateModal && (
+        <UpdateModal
+          updateInfo={updateInfo}
+          onClose={() => setShowUpdateModal(false)}
+          onCheckAgain={() => socket.emit('updater:check')}
+        />
+      )}
 
       {/* Connection Create/Edit Modal */}
       {showModal && (

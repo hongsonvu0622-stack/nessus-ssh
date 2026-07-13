@@ -6,19 +6,20 @@ import {
   KeyRound, 
   Settings, 
   Terminal, 
-  Cpu
+  Cpu,
+  RefreshCw
 } from 'lucide-react';
 import { useI18n } from '../i18n/I18nContext.jsx';
 
-export default function Sidebar({ activeView, setActiveView, activeTabsCount, onOpenNewTerminal }) {
+export default function Sidebar({ activeView, setActiveView, activeTabsCount, onOpenNewTerminal, hasNewUpdate, onCheckUpdate }) {
   const { lang, setLang, t } = useI18n();
 
   const navItems = [
     { id: 'hosts', label: t('sidebar.connections'), icon: Server, badge: null },
-    { id: 'sftp', label: t('sidebar.sftp'), icon: FolderGit2, badge: null },
+    // { id: 'sftp', label: t('sidebar.sftp'), icon: FolderGit2, badge: null }, // Tạm ẩn phát triển sau
     { id: 'snippets', label: t('sidebar.snippets'), icon: Code2, badge: null },
     { id: 'identities', label: t('sidebar.identities'), icon: KeyRound, badge: null },
-    { id: 'settings', label: t('sidebar.settings'), icon: Settings, badge: null },
+    { id: 'settings', label: t('sidebar.settings'), icon: Settings, badge: hasNewUpdate ? 'NEW' : null },
   ];
 
   return (
@@ -283,6 +284,34 @@ export default function Sidebar({ activeView, setActiveView, activeTabsCount, on
             }}
           >EN</button>
         </div>
+      </div>
+
+      {/* Check for Update Button */}
+      <div style={{ padding: '0 14px 12px 14px' }}>
+        <button
+          onClick={onCheckUpdate}
+          style={{
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            padding: '9px 12px',
+            borderRadius: '10px',
+            background: hasNewUpdate ? 'linear-gradient(135deg, #6366f1, #a855f7)' : 'rgba(255, 255, 255, 0.06)',
+            border: hasNewUpdate ? 'none' : '1px solid var(--border-color)',
+            color: '#fff',
+            fontSize: '12px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            boxShadow: hasNewUpdate ? '0 0 16px rgba(99, 102, 241, 0.4)' : 'none'
+          }}
+          title="Kiểm tra phiên bản mới từ GitHub"
+        >
+          <RefreshCw size={13} />
+          {hasNewUpdate ? '✨ Có bản cập nhật mới' : '🔄 Kiểm tra cập nhật'}
+        </button>
       </div>
 
       {/* Footer / System Status */}

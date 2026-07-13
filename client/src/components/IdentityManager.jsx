@@ -16,6 +16,52 @@ export default function IdentityManager() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [importForm, setImportForm] = useState({ name: '', privateContent: '', publicContent: '' });
   const [importLoading, setImportLoading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [fileMeta, setFileMeta] = useState(null);
+
+  const analyzeKeyContent = (content, fileName = 'Nhập thủ công', fileSize = null) => {
+    let type = 'Khóa không xác định';
+    if (content.includes('BEGIN OPENSSH PRIVATE KEY')) type = 'OpenSSH Private Key';
+    else if (content.includes('BEGIN RSA PRIVATE KEY')) type = 'RSA Private Key';
+    else if (content.includes('BEGIN EC PRIVATE KEY')) type = 'ECDSA Private Key';
+    else if (content.includes('BEGIN PRIVATE KEY')) type = 'PKCS#8 Private Key';
+
+    const isEncrypted = content.includes('ENCRYPTED');
+    const linesCount = content.split('\n').filter(Boolean).length;
+
+    return {
+      fileName,
+      fileSize: fileSize ? `${(fileSize / 1024).toFixed(2)} KB` : 'N/A',
+      type,
+      isEncrypted,
+      linesCount
+    };
+  };
+
+  const processKeyFile = (file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target.result || '';
+      const meta = analyzeKeyContent(content, file.name, file.size);
+      setFileMeta(meta);
+      setImportForm(prev => ({
+        ...prev,
+        name: prev.name || file.name,
+        privateContent: content
+      }));
+    };
+    reader.readAsText(file);
+  };
+
+  const handleKeyFileDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0) {
+      processKeyFile(files[0]);
+    }
+  };
 
   // View public key modal
   const [viewPubModal, setViewPubModal] = useState(null);
@@ -93,7 +139,7 @@ export default function IdentityManager() {
         </div>
 
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={() => setShowImportModal(true)} className="btn-secondary" style={{ fontSize: '13px' }}>
+          <button onClick={() => { setFileMeta(null); setImportForm({ name: '', privateContent: '', publicContent: '' }); setShowImportModal(true); }} className="btn-secondary" style={{ fontSize: '13px' }}>
             <Upload size={15} /> Import Khóa
           </button>
           <button onClick={() => setShowGenModal(true)} className="btn-primary" style={{ fontSize: '13px' }}>
@@ -304,20 +350,87 @@ export default function IdentityManager() {
                 />
               </div>
 
+              {/* Drag and Drop Box */}
+              <div
+                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={handleKeyFileDrop}
+                style={{
+                  border: isDragging ? '2px dashed var(--accent-primary)' : '2px dashed var(--border-color)',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  textAlign: 'center',
+                  background: isDragging ? 'rgba(99, 102, 241, 0.15)' : 'rgba(0,0,0,0.2)',
+                  cursor: 'pointer',
+                  marginBottom: '14px',
+                  transition: 'all 0.2s'
+                }}
+                onClick={() => {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.onchange = (e) => {
+                    if (e.target.files?.[0]) processKeyFile(e.target.files[0]);
+                  };
+                  input.click();
+                }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                  <Upload size={24} color="var(--accent-primary)" />
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#fff' }}>
+                    Kéo thả tệp Private Key vào đây hoặc Nhấp chọn từ máy
+                  </span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    Hỗ trợ tệp OpenSSH / PEM (.pem, id_rsa, id_ed25519...)
+                  </span>
+                </div>
+              </div>
+
               <div style={{ marginBottom: '16px' }}>
                 <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>
                   Nội dung Private Key (PEM/OpenSSH)
                 </label>
                 <textarea
-                  rows={6}
+                  rows={5}
                   required
                   value={importForm.privateContent}
-                  onChange={e => setImportForm({ ...importForm, privateContent: e.target.value })}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setImportForm({ ...importForm, privateContent: val });
+                    if (val.trim()) {
+                      setFileMeta(analyzeKeyContent(val, fileMeta?.fileName || 'Nhập thủ công', null));
+                    } else {
+                      setFileMeta(null);
+                    }
+                  }}
                   className="input-field"
                   style={{ fontFamily: 'var(--font-mono)', fontSize: '12px' }}
                   placeholder="-----BEGIN OPENSSH PRIVATE KEY-----&#10;...&#10;-----END OPENSSH PRIVATE KEY-----"
                 />
               </div>
+
+              {/* Review Card */}
+              {fileMeta && (
+                <div style={{
+                  background: 'rgba(99, 102, 241, 0.1)',
+                  border: '1px solid rgba(99, 102, 241, 0.35)',
+                  borderRadius: '10px',
+                  padding: '12px 14px',
+                  marginBottom: '16px',
+                  fontSize: '12.5px',
+                  color: '#e2e8f0'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, color: '#818cf8', marginBottom: '8px' }}>
+                    <ShieldCheck size={16} />
+                    <span>Xem Trước Thông Tin Khóa (Review Before Import)</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+                    <div><span style={{ color: 'var(--text-muted)' }}>Tệp nguồn:</span> <b>{fileMeta.fileName}</b></div>
+                    <div><span style={{ color: 'var(--text-muted)' }}>Định dạng:</span> <b>{fileMeta.type}</b></div>
+                    <div><span style={{ color: 'var(--text-muted)' }}>Bảo mật:</span> {fileMeta.isEncrypted ? <b style={{ color: '#f59e0b' }}>🔒 Có mật khẩu (Passphrase)</b> : <b style={{ color: '#10b981' }}>🔓 Không mã hóa</b>}</div>
+                    <div><span style={{ color: 'var(--text-muted)' }}>Độ dài:</span> <b>{fileMeta.linesCount} dòng</b> {fileMeta.fileSize !== 'N/A' && `(${fileMeta.fileSize})`}</div>
+                  </div>
+                </div>
+              )}
 
               <div style={{ marginBottom: '24px' }}>
                 <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>

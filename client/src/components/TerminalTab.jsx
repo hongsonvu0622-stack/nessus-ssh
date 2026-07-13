@@ -414,6 +414,7 @@ export default function TerminalTab({
             ))}
           </select>
 
+          {/* Tạm ẩn SFTP phát triển sau
           {activeTab?.config?.protocol === 'ssh' && (
             <button
               onClick={() => onOpenSftp(activeTab.config)}
@@ -425,6 +426,7 @@ export default function TerminalTab({
               SFTP
             </button>
           )}
+          */}
         </div>
       </div>
 

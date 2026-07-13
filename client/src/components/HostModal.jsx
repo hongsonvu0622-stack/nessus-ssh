@@ -45,6 +45,7 @@ export default function HostModal({ initialData, groups, onClose, onSave }) {
   const [authType, setAuthType] = useState(initialData?.authType || 'password');
   const [password, setPassword] = useState(initialData?.password || '');
   const [keyPath, setKeyPath] = useState(initialData?.keyPath || '');
+  const [passphrase, setPassphrase] = useState(initialData?.passphrase || '');
 
   // Serial specific
   const [serialPath, setSerialPath] = useState(initialData?.serialPath || '/dev/cu.usbserial-0001');
@@ -77,6 +78,7 @@ export default function HostModal({ initialData, groups, onClose, onSave }) {
       result.authType = authType;
       result.password = authType === 'password' ? password : '';
       result.keyPath = authType === 'key' ? keyPath : '';
+      result.passphrase = authType === 'key' ? passphrase : '';
     } else if (protocol === 'serial') {
       result.serialPath = serialPath;
       result.baudRate = parseInt(baudRate, 10) || 9600;
@@ -334,6 +336,33 @@ export default function HostModal({ initialData, groups, onClose, onSave }) {
                       onChange={e => setKeyPath(e.target.value)}
                       style={inputStyle}
                     />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                      Passphrase mở khóa Private Key (Nếu có)
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="Mật khẩu mở khóa khóa SSH (để trống nếu hỏi khi kết nối hoặc không có)"
+                      value={passphrase}
+                      onChange={e => setPassphrase(e.target.value)}
+                      style={inputStyle}
+                    />
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      marginTop: '6px',
+                      fontSize: '11.5px',
+                      color: '#f59e0b',
+                      background: 'rgba(245, 158, 11, 0.1)',
+                      padding: '6px 10px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(245, 158, 11, 0.25)'
+                    }}>
+                      <span>🔐 Nếu khóa SSH có Passphrase nhưng để trống, ứng dụng sẽ tự động hiện hộp thoại hỏi Passphrase khi kết nối</span>
+                    </div>
                   </div>
                 </div>
               )}

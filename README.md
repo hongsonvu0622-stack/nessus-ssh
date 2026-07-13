@@ -15,14 +15,14 @@
 
 ### 2. Xác Thực Thông Minh & Bảo Mật Chuẩn AES-256-GCM
 - **Lưu trữ mật khẩu mã hóa**: Toàn bộ mật khẩu và passphrase được mã hóa chuẩn **AES-256-GCM** bảo mật cục bộ ngay trên thiết bị của bạn.
+- **Import Khóa SSH & Xem trước thông tin (Review Before Import)**: Hỗ trợ kéo thả tệp Private Key (`id_rsa`, `id_ed25519`, `.pem`...) và hiển thị thẻ xem trước (định dạng khóa, tình trạng mã hóa Passphrase, số dòng) trước khi lưu.
 - **Chuyển đổi xác thực động**: Khi kết nối SSH thất bại do sai mật khẩu hoặc khóa cũ, ứng dụng tự động hiển thị hộp thoại cho phép chọn khóa SSH thay thế hoặc nhập lại mật khẩu ngay lập tức.
 
 ### 3. Terminal Tương Tác Đa Tab (`xterm.js`) & Tự Động Co Giãn Màn Hình
 - **Đồng bộ kích thước động (Dynamic PTY Auto-Resize)**: Nhận diện thay đổi kích thước cửa sổ theo thời gian thực và gửi tín hiệu `SIGWINCH` tới máy chủ, giúp các ứng dụng full-screen như **`htop`**, **`vim`**, **`nano`** luôn vừa vặn hoàn hảo.
 - **4 bộ Theme cao cấp**: **Nexus Cyber Dark**, **Cyberpunk Neon**, **Dracula**, **Nord**.
 
-### 4. Trình Duyệt File SFTP & Quản Lý Lệnh Nhanh
-- Duyệt, chỉnh sửa, tải xuống/tải lên tệp tin từ xa qua SFTP được tích hợp sẵn.
+### 4. Quản Lý Lệnh Nhanh & Snippet
 - **Run Snippet**: Thực thi nhanh các lệnh DevOps (`htop`, `docker ps`, `show running-config`...).
 - **Nhập tự động cấu hình SSH có sẵn trên máy** chỉ với 1 cú nhấp chuột.
 

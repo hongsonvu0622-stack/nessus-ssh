@@ -76,7 +76,7 @@ class SshManager {
 
     const handleAuthFailure = (errMsg) => {
       const isKeyAuth = decryptedConfig.authType === 'key' && decryptedConfig.keyPath;
-      const isKeyErr = errMsg.includes('Cannot parse privateKey') || errMsg.includes('Encrypted private OpenSSH key detected') || errMsg.includes('passphrase');
+      const isKeyErr = errMsg.includes('Cannot parse privateKey') || errMsg.includes('Encrypted private OpenSSH key detected') || errMsg.includes('passphrase') || errMsg.includes('mã hóa');
       socket.emit('terminal:auth-required', {
         sessionId,
         host: decryptedConfig.host,
@@ -114,8 +114,14 @@ class SshManager {
 
     if (decryptedConfig.authType === 'key' && decryptedConfig.keyPath) {
       try {
-        connectConfig.privateKey = fs.readFileSync(decryptedConfig.keyPath);
-        if (decryptedConfig.passphrase) connectConfig.passphrase = decryptedConfig.passphrase;
+        const keyContent = fs.readFileSync(decryptedConfig.keyPath, 'utf8');
+        connectConfig.privateKey = keyContent;
+        if (decryptedConfig.passphrase && decryptedConfig.passphrase.trim() !== '') {
+          connectConfig.passphrase = decryptedConfig.passphrase;
+        } else if (keyContent.includes('ENCRYPTED')) {
+          handleAuthFailure('Khóa SSH được mã hóa (Passphrase Protected). Vui lòng nhập Passphrase mở khóa:');
+          return;
+        }
       } catch (err) {
         socket.emit('terminal:status', { sessionId, status: 'error', message: `Cannot read SSH key: ${err.message}` });
         return;

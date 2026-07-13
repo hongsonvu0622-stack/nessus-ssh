@@ -9,6 +9,7 @@ const sshManager = require('./sshManager');
 const serialManager = require('./serialManager');
 const localPtyManager = require('./localPtyManager');
 const sftpManager = require('./sftpManager');
+const updater = require('./updater');
 
 const app = express();
 const server = http.createServer(app);
@@ -105,9 +106,38 @@ app.post('/api/sftp/write', async (req, res) => {
   }
 });
 
+app.get('/api/updater/check', async (req, res) => {
+  try {
+    const result = await updater.checkLatestRelease();
+    res.json(result);
+  } catch (err) {
+    res.json({
+      status: 'error',
+      currentVersion: updater.CURRENT_VERSION,
+      latestVersion: updater.CURRENT_VERSION,
+      message: err.message
+    });
+  }
+});
+
 // Socket.IO realtime connection for terminal sessions
 io.on('connection', (socket) => {
   console.log('Client connected to socket:', socket.id);
+
+  socket.on('updater:check', async () => {
+    try {
+      socket.emit('updater:status', { status: 'checking', currentVersion: updater.CURRENT_VERSION });
+      const result = await updater.checkLatestRelease();
+      socket.emit('updater:status', result);
+    } catch (err) {
+      socket.emit('updater:status', {
+        status: 'error',
+        currentVersion: updater.CURRENT_VERSION,
+        latestVersion: updater.CURRENT_VERSION,
+        message: 'Lỗi kiểm tra cập nhật: ' + err.message
+      });
+    }
+  });
 
   socket.on('terminal:connect', ({ sessionId, config }) => {
     console.log(`Connecting session ${sessionId} [protocol: ${config.protocol || 'ssh'}]`);

@@ -421,6 +421,7 @@ export default function HostList({
           {t('hostList.openTerminalBtn')}
         </button>
 
+        {/* Tạm ẩn tính năng SFTP phát triển sau
         {conn.protocol === 'ssh' && (
           <button
             onClick={() => onOpenSftp(conn)}
@@ -431,6 +432,7 @@ export default function HostList({
             <FolderGit2 size={16} color="#818cf8" />
           </button>
         )}
+        */}
       </div>
     </div>
   );
