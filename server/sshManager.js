@@ -25,13 +25,19 @@ class SshManager {
 
     this.pendingConfigs.set(sessionId, decryptedConfig);
 
-    // If password auth is selected and password is not provided yet, ask immediately
-    if (decryptedConfig.authType === 'password' && (!decryptedConfig.password || decryptedConfig.password.trim() === '')) {
+    // If password or key auth is selected but required credentials are missing yet, ask immediately
+    if (
+      (decryptedConfig.authType === 'password' && (!decryptedConfig.password || decryptedConfig.password.trim() === '')) ||
+      (decryptedConfig.authType === 'key' && !decryptedConfig.keyPath)
+    ) {
       socket.emit('terminal:auth-required', {
         sessionId,
         host: decryptedConfig.host,
         username: decryptedConfig.username || 'root',
-        message: `Vui lòng nhập mật khẩu SSH cho ${decryptedConfig.username || 'root'}@${decryptedConfig.host}:`
+        failedAuthType: decryptedConfig.authType || 'password',
+        message: decryptedConfig.authType === 'key'
+          ? `Vui lòng chọn Khóa SSH cho ${decryptedConfig.username || 'root'}@${decryptedConfig.host}:`
+          : `Vui lòng nhập mật khẩu SSH cho ${decryptedConfig.username || 'root'}@${decryptedConfig.host}:`
       });
       return;
     }
@@ -148,37 +154,42 @@ class SshManager {
   }
 
   authSubmit(sessionId, payload, socket) {
+    const config = this.pendingConfigs.get(sessionId) || {};
+    let updatedConfig;
+    if (typeof payload === 'string') {
+      updatedConfig = { ...config, password: payload, authType: 'password', keyPath: '' };
+    } else if (payload && payload.authType === 'key') {
+      updatedConfig = {
+        ...config,
+        authType: 'key',
+        keyPath: payload.keyPath || '',
+        passphrase: payload.passphrase || ''
+      };
+    } else {
+      updatedConfig = {
+        ...config,
+        authType: 'password',
+        password: (payload && payload.password) || '',
+        keyPath: ''
+      };
+    }
+    this.pendingConfigs.set(sessionId, updatedConfig);
+
     const finish = this.pendingAuth.get(sessionId);
-    if (finish) {
+    const isKeyChoice = updatedConfig.authType === 'key';
+
+    if (finish && !isKeyChoice) {
       this.pendingAuth.delete(sessionId);
-      const pass = typeof payload === 'string' ? payload : (payload && payload.password) || '';
-      finish([pass]);
+      finish([updatedConfig.password || '']);
       return;
     }
 
-    // Otherwise retry connection with the new auth choice
-    const config = this.pendingConfigs.get(sessionId);
-    if (config) {
-      let updatedConfig;
-      if (typeof payload === 'string') {
-        updatedConfig = { ...config, password: payload, authType: 'password', keyPath: '' };
-      } else if (payload && payload.authType === 'key') {
-        updatedConfig = {
-          ...config,
-          authType: 'key',
-          keyPath: payload.keyPath || '',
-          passphrase: payload.passphrase || ''
-        };
-      } else {
-        updatedConfig = {
-          ...config,
-          authType: 'password',
-          password: (payload && payload.password) || '',
-          keyPath: ''
-        };
-      }
-      this.connect(sessionId, updatedConfig, socket);
+    // If there is any active or pending keyboard-interactive connection, disconnect before retrying with new auth choice / SSH Key
+    if (finish || this.sessions.has(sessionId)) {
+      this.disconnect(sessionId);
     }
+
+    this.connect(sessionId, updatedConfig, socket);
   }
 
   write(sessionId, data) {
