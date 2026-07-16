@@ -25,17 +25,18 @@ class SshManager {
 
     this.pendingConfigs.set(sessionId, decryptedConfig);
 
+    const authType = decryptedConfig.authType || 'password';
     // If password or key auth is selected but required credentials are missing yet, ask immediately
     if (
-      (decryptedConfig.authType === 'password' && (!decryptedConfig.password || decryptedConfig.password.trim() === '')) ||
-      (decryptedConfig.authType === 'key' && !decryptedConfig.keyPath)
+      (authType === 'password' && (!decryptedConfig.password || decryptedConfig.password.trim() === '')) ||
+      (authType === 'key' && !decryptedConfig.keyPath)
     ) {
       socket.emit('terminal:auth-required', {
         sessionId,
         host: decryptedConfig.host,
         username: decryptedConfig.username || 'root',
-        failedAuthType: decryptedConfig.authType || 'password',
-        message: decryptedConfig.authType === 'key'
+        failedAuthType: authType,
+        message: authType === 'key'
           ? `Vui lòng chọn Khóa SSH cho ${decryptedConfig.username || 'root'}@${decryptedConfig.host}:`
           : `Vui lòng nhập mật khẩu SSH cho ${decryptedConfig.username || 'root'}@${decryptedConfig.host}:`
       });
