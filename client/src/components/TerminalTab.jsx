@@ -165,6 +165,44 @@ function SingleTerminalPane({ tab, isActive, themeKey, onCloseTab, setStatusText
       });
     });
 
+    let selectionTimeout = null;
+    const selectionDisposable = term.onSelectionChange(() => {
+      if (selectionTimeout) clearTimeout(selectionTimeout);
+      selectionTimeout = setTimeout(() => {
+        if (!term.hasSelection()) return;
+        const selText = term.getSelection();
+        if (selText && selText.trim() !== '') {
+          navigator.clipboard.writeText(selText).then(() => {
+            setStatusText('📋 Đã tự động sao chép vào Clipboard');
+          }).catch(() => {});
+        }
+      }, 200);
+    });
+
+    const terminalElement = containerRef.current;
+    const handleContextMenu = async (e) => {
+      e.preventDefault();
+      if (term.hasSelection()) {
+        const selText = term.getSelection();
+        if (selText) {
+          navigator.clipboard.writeText(selText).catch(() => {});
+        }
+        term.clearSelection();
+        setStatusText('📋 Đã sao chép & bỏ chọn');
+      } else {
+        try {
+          const clipText = await navigator.clipboard.readText();
+          if (clipText) {
+            term.paste(clipText);
+            setStatusText('📋 Đã dán từ Clipboard');
+          }
+        } catch (err) {}
+      }
+    };
+    if (terminalElement) {
+      terminalElement.addEventListener('contextmenu', handleContextMenu);
+    }
+
     const outputListener = ({ sessionId, data }) => {
       if (sessionId === tab.sessionId) {
         term.write(data);
@@ -224,8 +262,11 @@ function SingleTerminalPane({ tab, isActive, themeKey, onCloseTab, setStatusText
     return () => {
       clearTimeout(timer1);
       clearTimeout(timer2);
+      if (selectionTimeout) clearTimeout(selectionTimeout);
       resizeObserver.disconnect();
       inputDisposable.dispose();
+      try { selectionDisposable.dispose(); } catch (e) {}
+      if (terminalElement) terminalElement.removeEventListener('contextmenu', handleContextMenu);
       socket.off('terminal:output', outputListener);
       socket.off('terminal:status', statusListener);
       socket.off('terminal:auth-required', authRequiredListener);
