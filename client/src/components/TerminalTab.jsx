@@ -79,12 +79,17 @@ const TERMINAL_THEMES = {
   }
 };
 
-function SingleTerminalPane({ tab, isActive, themeKey, onCloseTab, setStatusText, setAuthModal }) {
+function SingleTerminalPane({ tab, isActive, themeKey, onCloseTab, setStatusText, setAuthModal, settings }) {
   const containerRef = useRef(null);
   const xtermRef = useRef(null);
   const fitAddonRef = useRef(null);
   const connectedRef = useRef(false);
   const statusPrintedRef = useRef(new Set());
+  const settingsRef = useRef(settings);
+
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
 
   useEffect(() => {
     if (xtermRef.current) {
@@ -167,6 +172,7 @@ function SingleTerminalPane({ tab, isActive, themeKey, onCloseTab, setStatusText
 
     let selectionTimeout = null;
     const selectionDisposable = term.onSelectionChange(() => {
+      if (settingsRef.current?.autoCopyOnSelect === false) return;
       if (selectionTimeout) clearTimeout(selectionTimeout);
       selectionTimeout = setTimeout(() => {
         if (!term.hasSelection()) return;
@@ -181,6 +187,7 @@ function SingleTerminalPane({ tab, isActive, themeKey, onCloseTab, setStatusText
 
     const terminalElement = containerRef.current;
     const handleContextMenu = async (e) => {
+      if (settingsRef.current?.rightClickPaste === false) return;
       e.preventDefault();
       if (term.hasSelection()) {
         const selText = term.getSelection();
@@ -298,7 +305,8 @@ export default function TerminalTab({
   setActiveTabId,
   onCloseTab,
   snippets,
-  onOpenSftp
+  onOpenSftp,
+  settings
 }) {
   const { t } = useI18n();
   const activeTab = tabs.find(t => t.sessionId === activeTabId) || tabs[0];
@@ -496,6 +504,7 @@ export default function TerminalTab({
           onCloseTab={onCloseTab}
           setStatusText={setStatusText}
           setAuthModal={setAuthModal}
+          settings={settings}
         />
       ))}
 

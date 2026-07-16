@@ -95,12 +95,12 @@ export default function App() {
     };
   }, []);
 
-  const persistData = async (newConnections, newGroups, newSnippets) => {
+  const persistData = async (newConnections, newGroups, newSnippets, newSettings) => {
     const payload = {
       connections: newConnections !== undefined ? newConnections : connections,
       groups: newGroups !== undefined ? newGroups : groups,
       snippets: newSnippets !== undefined ? newSnippets : snippets,
-      settings
+      settings: newSettings !== undefined ? newSettings : settings
     };
     await saveData(payload);
   };
@@ -342,6 +342,7 @@ export default function App() {
             onCloseTab={handleCloseTab}
             snippets={snippets}
             onOpenSftp={handleOpenSftp}
+            settings={settings}
           />
         )}
 
@@ -472,6 +473,61 @@ export default function App() {
                   </div>
                 </div>
               </label>
+            </div>
+
+            {/* Terminal Behavior Settings Card */}
+            <div className="glass-panel" style={{
+              borderRadius: '16px',
+              padding: '20px 24px',
+              border: '1px solid var(--border-color)',
+              marginTop: '16px'
+            }}>
+              <div style={{ fontSize: '15px', fontWeight: 700, color: '#fff', marginBottom: '14px' }}>
+                {lang === 'vi' ? '⚙️ Cài đặt Terminal & Trải nghiệm' : '⚙️ Terminal & UX Preferences'}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={settings?.autoCopyOnSelect !== false}
+                    onChange={async (e) => {
+                      const updated = { ...settings, autoCopyOnSelect: e.target.checked };
+                      setSettings(updated);
+                      await persistData(undefined, undefined, undefined, updated);
+                    }}
+                    style={{ width: '18px', height: '18px', accentColor: 'var(--accent-primary)' }}
+                  />
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 600, color: '#fff' }}>
+                      {lang === 'vi' ? 'Tự động sao chép khi bôi đen (Auto-copy on select)' : 'Auto-copy selected text'}
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                      {lang === 'vi' ? 'Tự động chép văn bản vào Clipboard ngay khi bôi đen trong Terminal.' : 'Automatically copy selected text in terminal to system clipboard.'}
+                    </div>
+                  </div>
+                </label>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={settings?.rightClickPaste !== false}
+                    onChange={async (e) => {
+                      const updated = { ...settings, rightClickPaste: e.target.checked };
+                      setSettings(updated);
+                      await persistData(undefined, undefined, undefined, updated);
+                    }}
+                    style={{ width: '18px', height: '18px', accentColor: 'var(--accent-primary)' }}
+                  />
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: 600, color: '#fff' }}>
+                      {lang === 'vi' ? 'Click chuột phải để dán / bỏ chọn (Right-click to paste)' : 'Right-click to paste or clear selection'}
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                      {lang === 'vi' ? 'Chuột phải dán nội dung từ Clipboard (nếu không bôi đen) hoặc bỏ vùng đang bôi đen.' : 'Right-click to paste clipboard content or clear highlighted selection.'}
+                    </div>
+                  </div>
+                </label>
+              </div>
             </div>
           </div>
         )}
