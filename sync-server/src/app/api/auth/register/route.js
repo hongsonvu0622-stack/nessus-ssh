@@ -31,7 +31,7 @@ export async function POST(request) {
             role: 'OWNER',
             tenant: {
               create: {
-                name: 'Personal Workspace',
+                name: `Tenant ${email.split('@')[0]}`,
                 collections: {
                   create: {
                     name: 'Personal Collection',
