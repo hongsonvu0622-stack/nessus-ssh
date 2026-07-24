@@ -54,7 +54,7 @@ class SyncManager {
       }
 
       this.socket.emit('sync:auth_success', { email });
-      await this.performSync();
+      await this.performSync(true); // skip push on startup
       
     } catch (err) {
       console.error('Sync Login Error:', err.response?.data || err.message);
@@ -114,7 +114,7 @@ class SyncManager {
       }
 
       this.socket.emit('sync:auth_success', { email });
-      await this.performSync();
+      await this.performSync(true); // skip push on startup
       
     } catch (err) {
       console.error('Sync Register Error:', err.response?.data || err.message);
@@ -160,9 +160,9 @@ class SyncManager {
     this.socket.emit('sync:logged_out');
   }
 
-  async performSync() {
+  async performSync(skipPush = false) {
     try {
-      this.socket.emit('sync:status', { message: 'Pulling encrypted collections...', type: 'info' });
+      this.socket.emit('sync:status', { message: 'Bắt đầu đồng bộ...', type: 'info' });
       
       // Pull Collections
       const res = await axios.get(`${this.syncUrl}/sync/pull`, {
@@ -294,7 +294,8 @@ class SyncManager {
 
       // Find the Personal Collection to push to
       const personalAccess = collections.find(c => c.collection.type === 'PERSONAL');
-      if (personalAccess) {
+      // 3. PUSH LOCAL CHANGES FIRST (LWW: Local wins over stale cloud)
+      if (!skipPush && personalAccess) {
         const hexCollectionKey = cryptoUtil.decryptWithPrivateKey(personalAccess.encryptedKey, this.privateKey);
         const collectionKeyBuffer = Buffer.from(hexCollectionKey, 'hex');
 
