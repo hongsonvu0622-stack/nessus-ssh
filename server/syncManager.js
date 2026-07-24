@@ -276,6 +276,9 @@ class SyncManager {
             const cloudTime = c.updatedAt || 0;
             if (cloudTime >= localTime) {
               mergedMap.set(c.id, c);
+            } else {
+              local.collectionId = c.collectionId;
+              local.isShared = c.isShared;
             }
           }
         }
@@ -294,6 +297,9 @@ class SyncManager {
             const cloudTime = c.updatedAt || 0;
             if (cloudTime >= localTime) {
               mergedGroupsMap.set(c.id, c);
+            } else {
+              local.collectionId = c.collectionId;
+              local.isShared = c.isShared;
             }
           }
         }
@@ -312,6 +318,9 @@ class SyncManager {
             const cloudTime = c.updatedAt || 0;
             if (cloudTime >= localTime) {
               mergedSnippetsMap.set(c.id, c);
+            } else {
+              local.collectionId = c.collectionId;
+              local.isShared = c.isShared;
             }
           }
         }
