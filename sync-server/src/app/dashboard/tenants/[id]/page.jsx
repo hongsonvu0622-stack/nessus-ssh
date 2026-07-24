@@ -6,7 +6,7 @@ import { Server, Users, Key, Trash2, Edit2, ChevronDown, ChevronRight, User } fr
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 
-const ResourceTable = ({ resources, deleteResource }) => {
+const ResourceTable = ({ resources, deleteResource, currentUserRole }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [search, setSearch] = useState('');
   const itemsPerPage = 50;
@@ -50,9 +50,11 @@ const ResourceTable = ({ resources, deleteResource }) => {
                     {new Date(res.updatedAt).toLocaleDateString()}
                   </td>
                   <td className="p-3 text-right">
-                     <button onClick={(e) => { e.stopPropagation(); deleteResource(res.id); }} className="text-red-500 hover:text-red-700 p-1.5 bg-red-50 hover:bg-red-100 rounded transition-colors" title="Force Delete Resource">
-                       <Trash2 size={15} />
-                     </button>
+                    {currentUserRole !== 'VIEWER' && (
+                       <button onClick={(e) => { e.stopPropagation(); deleteResource(res.id); }} className="text-red-500 hover:text-red-700 p-1.5 bg-red-50 hover:bg-red-100 rounded transition-colors" title="Force Delete Resource">
+                         <Trash2 size={15} />
+                       </button>
+                    )}
                   </td>
                 </tr>
              ))}
@@ -155,9 +157,11 @@ export default function TenantDetailsPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
               {tenant.name}
-              <button onClick={updateName} className="text-gray-400 hover:text-indigo-600 transition" title="Rename Tenant">
-                <Edit2 size={16} />
-              </button>
+              {tenant.currentUserRole !== 'VIEWER' && (
+                <button onClick={updateName} className="text-gray-400 hover:text-indigo-600 transition" title="Rename Tenant">
+                  <Edit2 size={16} />
+                </button>
+              )}
             </h1>
             <p className="text-sm text-gray-500 mt-1">
               {tenant.users && tenant.users.length > 0 && (
@@ -233,7 +237,7 @@ export default function TenantDetailsPage() {
                       {vault.resources.length === 0 ? (
                         <p className="text-sm text-gray-400 italic mt-3">Vault is empty.</p>
                       ) : (
-                        <ResourceTable resources={vault.resources} deleteResource={deleteResource} />
+                        <ResourceTable resources={vault.resources} deleteResource={deleteResource} currentUserRole={tenant.currentUserRole} />
                       )}
                     </div>
                   )}

@@ -32,3 +32,20 @@ export async function verifySuperAdmin(request) {
     return null;
   }
 }
+
+export async function verifyAnyUser(request) {
+  const decoded = verifyAuth(request);
+  if (!decoded) return null;
+
+  try {
+    const { prisma } = await import('@/lib/prisma');
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId }
+    });
+    if (!user) return null;
+    return user;
+  } catch (err) {
+    console.error('verifyAnyUser error:', err);
+    return null;
+  }
+}

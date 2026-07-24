@@ -1,13 +1,33 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Cloud, Users, Server, LayoutDashboard, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import axios from 'axios';
 
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    const fetchMe = async () => {
+      try {
+        const token = localStorage.getItem('sync_admin_token');
+        if (!token) return router.push('/login');
+        const res = await axios.get('/api/auth/me', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setCurrentUser(res.data);
+      } catch (err) {
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          router.push('/login');
+        }
+      }
+    };
+    fetchMe();
+  }, [router]);
 
   const handleLogout = () => {
     localStorage.removeItem('sync_admin_token');
@@ -16,7 +36,7 @@ export default function DashboardLayout({ children }) {
 
   const navItems = [
     { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Users', href: '/dashboard/users', icon: Users },
+    ...(currentUser?.isSuperAdmin ? [{ name: 'Users', href: '/dashboard/users', icon: Users }] : []),
     { name: 'Tenants', href: '/dashboard/tenants', icon: Server },
   ];
 

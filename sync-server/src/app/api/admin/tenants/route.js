@@ -1,15 +1,22 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifySuperAdmin } from '@/lib/auth';
+import { verifySuperAdmin, verifyAnyUser } from '@/lib/auth';
 
 export async function GET(request) {
   try {
-    const admin = await verifySuperAdmin(request);
-    if (!admin) {
-      return NextResponse.json({ error: 'Forbidden. Super Admin access required.' }, { status: 403 });
+    const user = await verifyAnyUser(request);
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 });
     }
 
+    const whereClause = user.isSuperAdmin ? {} : {
+      users: {
+        some: { userId: user.id }
+      }
+    };
+
     const tenants = await prisma.tenant.findMany({
+      where: whereClause,
       include: {
         _count: {
           select: { users: true, collections: true }
