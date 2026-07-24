@@ -253,11 +253,13 @@ class SyncManager {
       
       const pulledCollectionIds = collections.map(a => a.collection.id);
 
-      // Filter logic: keep local if not in pulled collection, or if pulled from server.
-      // Also ignore any pulled item that is in the local deletedResourceIds blacklist.
-      let finalConns = localConns.filter(c => !c.collectionId || !pulledCollectionIds.includes(c.collectionId) || newConnections.some(nc => nc.id === c.id));
-      let finalGroups = localGroups.filter(g => !g.collectionId || !pulledCollectionIds.includes(g.collectionId) || newGroups.some(ng => ng.id === g.id));
-      let finalSnippets = localSnippets.filter(s => !s.collectionId || !pulledCollectionIds.includes(s.collectionId) || newSnippets.some(ns => ns.id === s.id));
+      // Filter logic: 
+      // - Keep local if it doesn't have a collectionId yet (newly created offline).
+      // - Keep local if its collectionId is still in pulledCollectionIds (we still have access).
+      // - If collectionId is present but NOT in pulledCollectionIds, we lost access to this Tenant/Vault -> DELETE IT locally.
+      let finalConns = localConns.filter(c => !c.collectionId || pulledCollectionIds.includes(c.collectionId));
+      let finalGroups = localGroups.filter(g => !g.collectionId || pulledCollectionIds.includes(g.collectionId));
+      let finalSnippets = localSnippets.filter(s => !s.collectionId || pulledCollectionIds.includes(s.collectionId));
 
       const mergedMap = new Map();
       finalConns.forEach(c => mergedMap.set(c.id, c));
@@ -405,6 +407,9 @@ class SyncManager {
         this.socket.emit('sync:status', { message: `Sync complete! (No personal vault found to push).`, type: 'success' });
       }
       
+      // E2EE Auto-Key Distribution for new members
+      await this.distributePendingKeys();
+
       this.socket.emit('sync:success');
 
       // Trigger UI reload
@@ -417,6 +422,43 @@ class SyncManager {
         type: 'error' 
       });
       this.socket.emit('sync:error');
+    }
+  }
+  async distributePendingKeys() {
+    try {
+      const res = await axios.get(`${this.syncUrl}/sync/pending-keys`, {
+        headers: { Authorization: `Bearer ${this.token}` }
+      });
+      const pendingShares = res.data;
+      
+      if (!pendingShares || pendingShares.length === 0) return;
+      
+      this.socket.emit('sync:status', { message: `Đang cấp phát khoá E2EE cho ${pendingShares.length} thành viên mới...`, type: 'info' });
+
+      for (const share of pendingShares) {
+        // Find the collection locally from this.collections to get its encryptedKey
+        const localColl = this.collections?.find(c => c.collection.id === share.collectionId);
+        if (!localColl) continue;
+
+        // Decrypt the AES key using my Private Key
+        const hexCollectionKey = cryptoUtil.decryptWithPrivateKey(localColl.encryptedKey, this.privateKey);
+        if (!hexCollectionKey) continue;
+
+        // Encrypt the AES key using the Target's Public Key
+        const newEncryptedKey = cryptoUtil.encryptWithPublicKey(hexCollectionKey, share.targetPublicKey);
+
+        // Upload the new key for the target user
+        await axios.post(`${this.syncUrl}/collections/${share.collectionId}/keys`, {
+          targetUserId: share.targetUserId,
+          encryptedKey: newEncryptedKey,
+          role: share.role
+        }, {
+          headers: { Authorization: `Bearer ${this.token}` }
+        });
+      }
+      this.socket.emit('sync:status', { message: `Đã cấp khoá thành công.`, type: 'success' });
+    } catch (e) {
+      console.error('Failed to distribute pending keys:', e.response?.data || e.message);
     }
   }
 }
