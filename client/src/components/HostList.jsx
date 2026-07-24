@@ -747,6 +747,17 @@ export default function HostList({
             </button>
 
             <button
+              onClick={onQuickSync}
+              disabled={isSyncing}
+              className="btn-primary"
+              style={{ fontSize: '13px', padding: '7px 14px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', flexShrink: 0, opacity: isSyncing ? 0.7 : 1, cursor: isSyncing ? 'wait' : 'pointer' }}
+              title="Đồng bộ ngay (Push & Pull)"
+            >
+              <RefreshCw size={15} className={isSyncing ? "animate-spin" : ""} />
+              <span>{isSyncing ? 'Syncing...' : 'Sync Now'}</span>
+            </button>
+
+            <button
               onClick={() => onOpenModal(null)}
               className="btn-primary"
               style={{ fontSize: '13px', padding: '7px 14px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', flexShrink: 0 }}

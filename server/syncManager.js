@@ -228,11 +228,11 @@ class SyncManager {
       }
 
       // Merge with local connections (Simple merge for MVP: overwrite local with same ID)
-      const data = dataStore.loadData();
-      const localConns = data.connections || [];
-      const localGroups = data.groups || [];
-      const localSnippets = data.snippets || [];
-      const deletedResourceIds = data.deletedResourceIds || [];
+      const mergedData = dataStore.loadData();
+      const localConns = mergedData.connections || [];
+      const localGroups = mergedData.groups || [];
+      const localSnippets = mergedData.snippets || [];
+      const deletedResourceIds = mergedData.deletedResourceIds || [];
       
       const pulledCollectionIds = collections.map(a => a.collection.id);
 
@@ -294,12 +294,13 @@ class SyncManager {
           }
         }
       });
-      data.snippets = Array.from(mergedSnippetsMap.values());
+      mergedData.snippets = Array.from(mergedSnippetsMap.values());
 
-        dataStore.saveData(data);
+      dataStore.saveData(mergedData);
+      data = mergedData; // Update the outer scope variable so push uses the merged state
 
-        this.socket.emit('sync:status', { message: `Sync Pull complete! Decrypted ${newConnections.length} remote resources. Pushing local updates...`, type: 'info' });
-      }
+      this.socket.emit('sync:status', { message: `Sync Pull complete! Decrypted ${newConnections.length} remote resources. Pushing local updates...`, type: 'info' });
+    }
 
       if (!this.collections) return;
 
