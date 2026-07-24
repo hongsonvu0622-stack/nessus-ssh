@@ -217,6 +217,7 @@ class SyncManager {
               try {
                 const conn = JSON.parse(decPayload);
                 conn.collectionId = access.collection.id; // tag it
+                conn.isShared = access.collection.type === 'SHARED';
                 newConnections.push(conn);
               } catch (e) {
                 console.error('Failed to parse decrypted resource', e);
@@ -228,6 +229,7 @@ class SyncManager {
               try {
                 const grp = JSON.parse(decPayload);
                 grp.collectionId = access.collection.id;
+                grp.isShared = access.collection.type === 'SHARED';
                 newGroups.push(grp);
               } catch (e) {}
             }
@@ -237,6 +239,7 @@ class SyncManager {
               try {
                 const snip = JSON.parse(decPayload);
                 snip.collectionId = access.collection.id;
+                snip.isShared = access.collection.type === 'SHARED';
                 newSnippets.push(snip);
               } catch (e) {}
             }

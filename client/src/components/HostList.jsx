@@ -376,6 +376,24 @@ export default function HostList({
               }}>
                 {conn.protocol}
               </span>
+              {conn.isShared && (
+                <span style={{
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  background: 'rgba(16, 185, 129, 0.25)',
+                  color: '#6ee7b7',
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '3px'
+                }}>
+                  <Users size={10} />
+                  SHARED
+                </span>
+              )}
             </div>
 
             <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
