@@ -188,7 +188,10 @@ class SyncManager {
       let data = dataStore.loadData();
 
       if (!skipPull || !this.collections) {
-        // Pull Collections
+        // 1. Ensure all my Tenants have a Shared Collection
+        await this.autoInitializeTenantCollections();
+
+        // 2. Pull Collections
       const res = await axios.get(`${this.syncUrl}/sync/pull`, {
         headers: { Authorization: `Bearer ${this.token}` }
       });
@@ -335,88 +338,118 @@ class SyncManager {
 
       if (!this.collections) return;
 
-      // Find the Personal Collection to push to
-      const personalAccess = this.collections.find(c => c.collection.type === 'PERSONAL');
-      // 3. PUSH LOCAL CHANGES FIRST (LWW: Local wins over stale cloud)
-      if (!skipPush && personalAccess) {
-        const hexCollectionKey = cryptoUtil.decryptWithPrivateKey(personalAccess.encryptedKey, this.privateKey);
-        const collectionKeyBuffer = Buffer.from(hexCollectionKey, 'hex');
-
-        const validCollectionIds = this.collections.map(c => c.collection.id);
-        let pushCount = 0;
-        const resourcesToPush = [];
+      // 3. PUSH LOCAL CHANGES
+      if (!skipPush) {
+        const validCollections = this.collections || [];
+        const personalAccess = validCollections.find(c => c.collection.type === 'PERSONAL');
+        const personalCollectionId = personalAccess?.collection.id;
         
-        for (const conn of data.connections) {
-          if (conn.collectionId && !validCollectionIds.includes(conn.collectionId)) {
-            conn.collectionId = personalAccess.collection.id; // Auto-recover orphaned data
-          }
-          if (!conn.collectionId || conn.collectionId === personalAccess.collection.id) {
-            const encPayload = cryptoUtil.encryptWithSymmetricKey(JSON.stringify(conn), collectionKeyBuffer);
-            resourcesToPush.push({
-              id: conn.id,
-              type: 'CONNECTION',
-              name: conn.name || 'Unknown Connection',
-              encPayload
-            });
-            pushCount++;
+        // Build maps for routing and encryption
+        const keyBuffers = new Map();
+        const nameToId = new Map();
+        
+        for (const access of validCollections) {
+          const hexCollectionKey = cryptoUtil.decryptWithPrivateKey(access.encryptedKey, this.privateKey);
+          if (hexCollectionKey) {
+            keyBuffers.set(access.collection.id, Buffer.from(hexCollectionKey, 'hex'));
+            if (access.collection.type === 'SHARED') {
+              nameToId.set(access.collection.name, access.collection.id); // Auto-routing map (Group Name -> Shared Vault ID)
+            }
           }
         }
-
-        for (const grp of data.groups || []) {
-          if (grp.collectionId && !validCollectionIds.includes(grp.collectionId)) {
-            grp.collectionId = personalAccess.collection.id;
-          }
-          if (!grp.collectionId || grp.collectionId === personalAccess.collection.id) {
-            const encPayload = cryptoUtil.encryptWithSymmetricKey(JSON.stringify(grp), collectionKeyBuffer);
-            resourcesToPush.push({
-              id: grp.id,
-              type: 'GROUP',
-              name: grp.name || 'Unknown Group',
-              encPayload
-            });
-            pushCount++;
-          }
+        
+        const pushPayloads = {};
+        for (const cid of keyBuffers.keys()) {
+          pushPayloads[cid] = { resourcesToPush: [], deletedIds: [] };
+        }
+        
+        // Broadcast hard-deleted items to all vaults (server will ignore if not found)
+        const hardDeletedIds = data.deletedResourceIds || [];
+        for (const cid of keyBuffers.keys()) {
+          pushPayloads[cid].deletedIds.push(...hardDeletedIds);
         }
 
-        for (const snip of data.snippets || []) {
-          if (snip.collectionId && !validCollectionIds.includes(snip.collectionId)) {
-            snip.collectionId = personalAccess.collection.id;
-          }
-          if (!snip.collectionId || snip.collectionId === personalAccess.collection.id) {
-            const encPayload = cryptoUtil.encryptWithSymmetricKey(JSON.stringify(snip), collectionKeyBuffer);
-            resourcesToPush.push({
-              id: snip.id,
-              name: snip.title,
-              type: 'SNIPPET',
-              encPayload
-            });
-            pushCount++;
-          }
-        }
+        let pushCount = 0;
 
-        const deletedIds = data.deletedResourceIds || [];
-
-        // Execute push
-        this.socket.emit('sync:status', { message: `Pushing ${pushCount} local updates and ${deletedIds.length} deletions to server...`, type: 'info' });
-        try {
-          await axios.post(`${this.syncUrl}/sync/push`, {
-            collectionId: personalAccess.collection.id,
-            resources: resourcesToPush,
-            deletedIds: deletedIds
-          }, {
-            headers: { Authorization: `Bearer ${this.token}` }
-          });
+        const processResource = (item, type) => {
+          let currentId = item.collectionId;
+          let targetId = personalCollectionId;
           
-          // Clear deletedResourceIds after successful push
-          data.deletedResourceIds = [];
+          // Auto-route based on Group Name matching Tenant Name
+          if (type === 'CONNECTION') {
+             const mappedId = nameToId.get(item.group);
+             if (mappedId) {
+                targetId = mappedId;
+             } else if (currentId && keyBuffers.has(currentId)) {
+                targetId = currentId; // keep current if valid
+             }
+          } else if (type === 'GROUP') {
+             const mappedId = nameToId.get(item.name);
+             if (mappedId) {
+                targetId = mappedId;
+             } else if (currentId && keyBuffers.has(currentId)) {
+                targetId = currentId;
+             }
+          } else {
+             if (currentId && keyBuffers.has(currentId)) {
+                targetId = currentId;
+             }
+          }
+
+          if (!targetId) targetId = personalCollectionId; // Absolute fallback to Personal Vault
+          if (!targetId) return; // Skip if no target available
+
+          // If the resource is moving from an old vault to a new one, we must issue a DELETE to the old vault
+          if (currentId && currentId !== targetId && keyBuffers.has(currentId)) {
+             pushPayloads[currentId].deletedIds.push(item.id);
+          }
+          
+          item.collectionId = targetId; // Update local metadata
+          item.isShared = validCollections.find(c => c.collection.id === targetId)?.collection.type === 'SHARED';
+
+          const keyBuffer = keyBuffers.get(targetId);
+          const encPayload = cryptoUtil.encryptWithSymmetricKey(JSON.stringify(item), keyBuffer);
+          
+          pushPayloads[targetId].resourcesToPush.push({
+            id: item.id,
+            type: type,
+            name: item.name || item.title || 'Unknown',
+            encPayload
+          });
+          pushCount++;
+        };
+
+        for (const conn of data.connections || []) processResource(conn, 'CONNECTION');
+        for (const grp of data.groups || []) processResource(grp, 'GROUP');
+        for (const snip of data.snippets || []) processResource(snip, 'SNIPPET');
+
+        // Execute pushes for all affected vaults
+        this.socket.emit('sync:status', { message: `Pushing ${pushCount} updates to ${Object.keys(pushPayloads).length} vaults...`, type: 'info' });
+        
+        let successCount = 0;
+        for (const [cid, payload] of Object.entries(pushPayloads)) {
+          if (payload.resourcesToPush.length === 0 && payload.deletedIds.length === 0) continue;
+          
+          try {
+            await axios.post(`${this.syncUrl}/sync/push`, {
+              collectionId: cid,
+              resources: payload.resourcesToPush,
+              deletedIds: payload.deletedIds
+            }, {
+              headers: { Authorization: `Bearer ${this.token}` }
+            });
+            successCount++;
+          } catch (e) {
+            console.error(`Failed to push to collection ${cid}:`, e.response?.data || e.message);
+          }
+        }
+        
+        if (successCount > 0) {
+          data.deletedResourceIds = []; // Clear local deleted IDs only if we pushed successfully
           dataStore.saveData(data);
-        } catch (e) {
-          console.error(`Failed to push resources:`, e.response?.data || e.message);
         }
 
-        this.socket.emit('sync:status', { message: `Sync complete! Pushed ${pushCount} local resources.`, type: 'success' });
-      } else {
-        this.socket.emit('sync:status', { message: `Sync complete! (No personal vault found to push).`, type: 'success' });
+        this.socket.emit('sync:status', { message: `Sync complete! Pushed to ${successCount} vaults.`, type: 'success' });
       }
       
       // E2EE Auto-Key Distribution for new members
@@ -471,6 +504,50 @@ class SyncManager {
       this.socket.emit('sync:status', { message: `Đã cấp khoá thành công.`, type: 'success' });
     } catch (e) {
       console.error('Failed to distribute pending keys:', e.response?.data || e.message);
+    }
+  }
+  async autoInitializeTenantCollections() {
+    try {
+      // Fetch all tenants the user belongs to
+      const res = await axios.get(`${this.syncUrl}/admin/tenants`, {
+        headers: { Authorization: `Bearer ${this.token}` }
+      });
+      const tenants = res.data;
+      if (!Array.isArray(tenants)) return;
+
+      for (const tenant of tenants) {
+        // Only initialize if the tenant has 0 collections
+        if (tenant._count && tenant._count.collections === 0) {
+          // Check if I am OWNER or ADMIN of this tenant
+          const myMembership = tenant.users?.find(tu => tu.user?.email === this.userId || tu.userId === this.userId); // userId is stored in JWT, wait, GET /admin/tenants returns users which includes userId! 
+          // Let's just try to create it. If we don't have permission, the server will reject it (403).
+          
+          this.socket.emit('sync:status', { message: `Đang khởi tạo Shared Vault cho Tenant: ${tenant.name}...`, type: 'info' });
+          
+          // Generate a new random AES key for this Shared Collection
+          const crypto = require('crypto');
+          const sharedCollectionKeyHex = crypto.randomBytes(32).toString('hex');
+          const encryptedSharedKey = cryptoUtil.encryptWithPublicKey(sharedCollectionKeyHex, this.publicKey);
+          
+          try {
+            await axios.post(`${this.syncUrl}/sync/collections`, {
+              tenantId: tenant.id,
+              name: tenant.name,
+              encryptedKey: encryptedSharedKey,
+              type: 'SHARED'
+            }, {
+              headers: { Authorization: `Bearer ${this.token}` }
+            });
+            this.socket.emit('sync:status', { message: `Khởi tạo Shared Vault thành công cho Tenant: ${tenant.name}`, type: 'success' });
+          } catch (err) {
+            if (err.response?.status !== 403) {
+              console.error(`Failed to init collection for tenant ${tenant.name}:`, err.response?.data || err.message);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to auto-init tenant collections:', e.response?.data || e.message);
     }
   }
 }
