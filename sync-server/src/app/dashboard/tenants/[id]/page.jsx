@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Server, Users, Key, Trash2, Edit2, ChevronDown, ChevronRight, User } from 'lucide-react';
+import { Server, Users, Key, Trash2, Edit2, ChevronDown, ChevronRight, User, X } from 'lucide-react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -158,6 +158,19 @@ export default function TenantDetailsPage() {
     }
   };
 
+  const removeMember = async (memberId) => {
+    if (!window.confirm(`WARNING! You are about to remove this member from the tenant. Proceed?`)) return;
+    try {
+      const token = localStorage.getItem('sync_admin_token');
+      await axios.delete(`/api/admin/tenants/${tenantId}/members/${memberId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      fetchTenant();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to remove member');
+    }
+  };
+
   const toggleVault = (vaultId) => {
     setExpandedVaults(prev => ({ ...prev, [vaultId]: !prev[vaultId] }));
   };
@@ -228,6 +241,15 @@ export default function TenantDetailsPage() {
                       <p className="text-xs text-gray-500 capitalize">{tu.role.toLowerCase()}</p>
                     </div>
                   </div>
+                  {tenant.currentUserRole !== 'VIEWER' && tu.role !== 'OWNER' && (
+                    <button 
+                      onClick={() => removeMember(tu.id)}
+                      className="text-gray-400 hover:text-red-500 transition p-1.5 rounded hover:bg-red-50"
+                      title="Remove Member"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
                 </li>
               ))}
               {tenant.users.length === 0 && (
