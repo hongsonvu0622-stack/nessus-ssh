@@ -301,7 +301,6 @@ class SyncManager {
         let pushCount = 0;
         const resourcesToPush = [];
         for (const conn of data.connections) {
-          // Only push connections that belong to the personal collection or have no collectionId
           if (!conn.collectionId || conn.collectionId === personalAccess.collection.id) {
             const encPayload = cryptoUtil.encryptWithSymmetricKey(JSON.stringify(conn), collectionKeyBuffer);
             resourcesToPush.push({
@@ -310,6 +309,7 @@ class SyncManager {
               name: conn.name || 'Unknown Connection',
               encPayload
             });
+            pushCount++;
           }
         }
 
@@ -322,6 +322,7 @@ class SyncManager {
               name: grp.name || 'Unknown Group',
               encPayload
             });
+            pushCount++;
           }
         }
 
