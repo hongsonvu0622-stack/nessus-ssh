@@ -104,8 +104,7 @@ function decryptWithSymmetricKey(cipherText, keyBuffer) {
     decrypted += decipher.final('utf8');
     return decrypted;
   } catch (err) {
-    console.error('Error decrypting symmetric payload:', err);
-    return cipherText;
+    throw new Error('Decryption failed: Invalid passphrase or corrupted data');
   }
 }
 
