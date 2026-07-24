@@ -91,7 +91,14 @@ export default function TenantDetailsPage() {
                 <Edit2 size={16} />
               </button>
             </h1>
-            <p className="text-sm text-gray-500">ID: {tenant.id} &bull; Created: {new Date(tenant.createdAt).toLocaleDateString()}</p>
+            <p className="text-sm text-gray-500 mt-1">
+              {tenant.users && tenant.users.length > 0 && (
+                <span className="font-medium text-indigo-600 mr-2">
+                  Owner: {tenant.users.find(u => u.role === 'OWNER')?.user?.email || tenant.users[0]?.user?.email}
+                </span>
+              )}
+              ID: {tenant.id} &bull; Created: {new Date(tenant.createdAt).toLocaleDateString()}
+            </p>
           </div>
         </div>
       </div>

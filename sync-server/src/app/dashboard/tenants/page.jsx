@@ -90,11 +90,20 @@ export default function TenantsPage() {
           <tbody className="text-sm">
             {tenants.map((tenant) => (
               <tr key={tenant.id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                <td className="px-6 py-4 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                    <Server size={16} />
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                      <Server size={16} />
+                    </div>
+                    <div>
+                      <span className="font-medium text-gray-900 block">{tenant.name}</span>
+                      {tenant.users && tenant.users.length > 0 && (
+                        <span className="text-[11px] text-gray-500 block mt-0.5">
+                          Owner: {tenant.users.find(u => u.role === 'OWNER')?.user?.email || tenant.users[0]?.user?.email}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <span className="font-medium text-gray-900">{tenant.name}</span>
                 </td>
                 <td className="px-6 py-4 text-gray-700">
                   <div className="flex items-center gap-2">

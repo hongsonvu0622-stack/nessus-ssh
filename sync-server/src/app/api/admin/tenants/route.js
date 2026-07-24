@@ -13,6 +13,11 @@ export async function GET(request) {
       include: {
         _count: {
           select: { users: true, collections: true }
+        },
+        users: {
+          include: {
+            user: { select: { email: true } }
+          }
         }
       },
       orderBy: { createdAt: 'desc' }
