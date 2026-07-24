@@ -112,10 +112,38 @@ export default function App() {
 
     const onDataUpdate = (data) => {
       if (data) {
-        setConnections(data.connections || []);
-        setGroups(data.groups || []);
-        setSnippets(data.snippets || []);
+        let loadedConns = data.connections || [];
+        let loadedGroups = data.groups || [];
+        let loadedSnippets = data.snippets || [];
+        let loadedDeletedIds = data.deletedResourceIds || [];
+        
+        const now = Date.now();
+        const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+        let needsSave = false;
+        
+        const filterTrash = (item) => {
+          if (!item.deletedAt) return true;
+          if (now - item.deletedAt > THIRTY_DAYS) {
+            loadedDeletedIds.push(item.id);
+            needsSave = true;
+            return false;
+          }
+          return true;
+        };
+
+        loadedConns = loadedConns.filter(filterTrash);
+        loadedGroups = loadedGroups.filter(filterTrash);
+        loadedSnippets = loadedSnippets.filter(filterTrash);
+
+        setConnections(loadedConns);
+        setGroups(loadedGroups);
+        setSnippets(loadedSnippets);
+        setDeletedResourceIds(loadedDeletedIds);
         setSettings(data.settings || {});
+        
+        if (needsSave) {
+          persistData(loadedConns, loadedGroups, loadedSnippets, data.settings, loadedDeletedIds);
+        }
       }
     };
     socket.on('data:update', onDataUpdate);
