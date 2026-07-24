@@ -81,6 +81,16 @@ export default function App() {
     socket.on('rdp:launched', onRdpLaunched);
     socket.on('rdp:error', onRdpError);
 
+    const onDataUpdate = (data) => {
+      if (data) {
+        setConnections(data.connections || []);
+        setGroups(data.groups || []);
+        setSnippets(data.snippets || []);
+        setSettings(data.settings || {});
+      }
+    };
+    socket.on('data:update', onDataUpdate);
+
     const timer = setTimeout(() => {
       if (autoCheckUpdate) {
         socket.emit('updater:check');
@@ -93,6 +103,7 @@ export default function App() {
       socket.off('rdp:launching', onRdpLaunching);
       socket.off('rdp:launched', onRdpLaunched);
       socket.off('rdp:error', onRdpError);
+      socket.off('data:update', onDataUpdate);
     };
   }, []);
 
