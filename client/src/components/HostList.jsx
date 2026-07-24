@@ -51,7 +51,8 @@ export default function HostList({
   onQuickSync,
   isSyncing,
   settings,
-  isLoggedIn
+  isLoggedIn,
+  canEditWorkspace = true
 }) {
   const { t, lang } = useI18n();
   const [search, setSearch] = useState('');
@@ -414,43 +415,45 @@ export default function HostList({
         </div>
 
         <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
-          {viewMode === 'trash' ? (
-            <>
-              <button
-                onClick={() => onRestoreConnection(conn.id)}
-                className="btn-icon"
-                title="Khôi phục máy chủ"
-                style={{ color: '#10b981' }}
-              >
-                <FolderGit2 size={15} />
-              </button>
-              <button
-                onClick={() => onHardDeleteConnection(conn.id)}
-                className="btn-icon"
-                title="Xóa vĩnh viễn"
-                style={{ color: 'var(--danger)' }}
-              >
-                <Trash2 size={15} />
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                onClick={() => onOpenModal(conn)}
-                className="btn-icon"
-                title="Chỉnh sửa kết nối"
-              >
-                <Edit3 size={15} />
-              </button>
-              <button
-                onClick={() => onDeleteConnection(conn.id)}
-                className="btn-icon"
-                title="Xóa kết nối"
-                style={{ color: 'var(--danger)' }}
-              >
-                <Trash2 size={15} />
-              </button>
-            </>
+          {canEditWorkspace && (
+            viewMode === 'trash' ? (
+              <>
+                <button
+                  onClick={() => onRestoreConnection(conn.id)}
+                  className="btn-icon"
+                  title="Khôi phục máy chủ"
+                  style={{ color: '#10b981' }}
+                >
+                  <FolderGit2 size={15} />
+                </button>
+                <button
+                  onClick={() => onHardDeleteConnection(conn.id)}
+                  className="btn-icon"
+                  title="Xóa vĩnh viễn"
+                  style={{ color: 'var(--danger)' }}
+                >
+                  <Trash2 size={15} />
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => onOpenModal(conn)}
+                  className="btn-icon"
+                  title="Chỉnh sửa kết nối"
+                >
+                  <Edit3 size={15} />
+                </button>
+                <button
+                  onClick={() => onDeleteConnection(conn.id)}
+                  className="btn-icon"
+                  title="Xóa kết nối"
+                  style={{ color: 'var(--danger)' }}
+                >
+                  <Trash2 size={15} />
+                </button>
+              </>
+            )
           )}
         </div>
       </div>
@@ -651,29 +654,33 @@ export default function HostList({
                   <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '4px 0' }} />
 
                   {/* Import */}
-                  <button
-                    onClick={() => {
-                      setShowMoreMenu(false);
-                      fileInputRef.current?.click();
-                    }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
-                      padding: '9px 12px', background: 'transparent', border: 'none', color: '#fff',
-                      fontSize: '12.5px', textAlign: 'left', cursor: 'pointer', borderRadius: '6px'
-                    }}
-                  >
-                    <Upload size={15} color="#10b981" /> Tải lên File (.xlsx / .json)
-                  </button>
-                  <button
-                    onClick={() => { setShowMoreMenu(false); handleDownloadTemplate(); }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
-                      padding: '9px 12px', background: 'transparent', border: 'none', color: '#fff',
-                      fontSize: '12.5px', textAlign: 'left', cursor: 'pointer', borderRadius: '6px'
-                    }}
-                  >
-                    <FileSpreadsheet size={15} color="#fbbf24" /> Tải File Mẫu (.xlsx)
-                  </button>
+                  {canEditWorkspace && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setShowMoreMenu(false);
+                          fileInputRef.current?.click();
+                        }}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+                          padding: '9px 12px', background: 'transparent', border: 'none', color: '#fff',
+                          fontSize: '12.5px', textAlign: 'left', cursor: 'pointer', borderRadius: '6px'
+                        }}
+                      >
+                        <Upload size={15} color="#10b981" /> Tải lên File (.xlsx / .json)
+                      </button>
+                      <button
+                        onClick={() => { setShowMoreMenu(false); handleDownloadTemplate(); }}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+                          padding: '9px 12px', background: 'transparent', border: 'none', color: '#fff',
+                          fontSize: '12.5px', textAlign: 'left', cursor: 'pointer', borderRadius: '6px'
+                        }}
+                      >
+                        <FileSpreadsheet size={15} color="#fbbf24" /> Tải File Mẫu (.xlsx)
+                      </button>
+                    </>
+                  )}
 
                   <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '4px 0' }} />
 
@@ -714,14 +721,16 @@ export default function HostList({
               </button>
             )}
 
-            <button
-              onClick={() => onOpenModal(null)}
-              className="btn-primary"
-              style={{ fontSize: '13px', padding: '7px 14px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', flexShrink: 0 }}
-            >
-              <Plus size={16} />
-              <span>{t('hostList.newConnection')}</span>
-            </button>
+            {canEditWorkspace && (
+              <button
+                onClick={() => onOpenModal(null)}
+                className="btn-primary"
+                style={{ fontSize: '13px', padding: '7px 14px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', flexShrink: 0 }}
+              >
+                <Plus size={16} />
+                <span>{t('hostList.newConnection')}</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -768,13 +777,15 @@ export default function HostList({
             </div>
 
             {/* CREATE FOLDER BUTTON - Opens custom React modal */}
-            <button
-              onClick={() => setCreateGroupModal(true)}
-              className="btn-secondary"
-              style={{ fontSize: '12px', padding: '6px 14px', background: 'rgba(99, 102, 241, 0.15)', borderColor: 'rgba(99, 102, 241, 0.3)', color: '#a5b4fc' }}
-            >
-              <Folder size={14} color="#818cf8" /> {t('hostList.createGroupBtn')}
-            </button>
+            {canEditWorkspace && (
+              <button
+                onClick={() => setCreateGroupModal(true)}
+                className="btn-secondary"
+                style={{ fontSize: '12px', padding: '6px 14px', background: 'rgba(99, 102, 241, 0.15)', borderColor: 'rgba(99, 102, 241, 0.3)', color: '#a5b4fc' }}
+              >
+                <Folder size={14} color="#818cf8" /> {t('hostList.createGroupBtn')}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -818,7 +829,7 @@ export default function HostList({
                         fontWeight: 600,
                         background: 'rgba(251, 191, 36, 0.15)',
                         color: '#fbbf24',
-                        padding: '2px 8px',
+padding: '2px 8px',
                         borderRadius: '10px'
                       }}>
                         {groupHosts.length} {t('hostList.serverCount')}
@@ -826,7 +837,7 @@ export default function HostList({
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }} onClick={e => e.stopPropagation()}>
-                      {viewMode !== 'trash' && (
+                      {canEditWorkspace && viewMode !== 'trash' && (
                         <button
                           onClick={() => onOpenModal({ group: gName, protocol: 'ssh' })}
                           className="btn-secondary"
@@ -837,21 +848,23 @@ export default function HostList({
                       )}
 
                       {/* 3-DOT MENU BUTTON */}
-                      <button
-                        onClick={() => setActiveFolderMenu(activeFolderMenu === gName ? null : gName)}
-                        className="btn-icon"
-                        title="Tùy chọn thư mục"
-                        style={{
-                          width: '32px',
-                          height: '32px',
-                          background: activeFolderMenu === gName ? 'rgba(255,255,255,0.15)' : 'transparent',
-                          border: 'none',
-                          outline: 'none',
-                          boxShadow: 'none'
-                        }}
-                      >
-                        <MoreVertical size={16} />
-                      </button>
+                      {canEditWorkspace && (
+                        <button
+                          onClick={() => setActiveFolderMenu(activeFolderMenu === gName ? null : gName)}
+                          className="btn-icon"
+                          title="Tùy chọn thư mục"
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            background: activeFolderMenu === gName ? 'rgba(255,255,255,0.15)' : 'transparent',
+                            border: 'none',
+                            outline: 'none',
+                            boxShadow: 'none'
+                          }}
+                        >
+                          <MoreVertical size={16} />
+                        </button>
+                      )}
 
                       {activeFolderMenu === gName && (
                         <div style={{

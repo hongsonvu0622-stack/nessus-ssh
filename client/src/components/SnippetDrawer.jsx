@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Code2, Plus, Play, Trash2, Edit3, Terminal } from 'lucide-react';
 import { useI18n } from '../i18n/I18nContext.jsx';
 
-export default function SnippetDrawer({ snippets, onSaveSnippet, onDeleteSnippet }) {
+export default function SnippetDrawer({ snippets, onSaveSnippet, onDeleteSnippet, canEditWorkspace = true }) {
   const { t } = useI18n();
   const [title, setTitle] = useState('');
   const [command, setCommand] = useState('');
@@ -33,59 +33,61 @@ export default function SnippetDrawer({ snippets, onSaveSnippet, onDeleteSnippet
         </p>
       </div>
 
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '24px', padding: '24px 28px', overflow: 'hidden' }}>
+      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: canEditWorkspace ? '1fr 2fr' : '1fr', gap: '24px', padding: '24px 28px', overflow: 'hidden' }}>
         {/* Form add snippet */}
-        <div className="glass-panel" style={{ padding: '20px', borderRadius: '14px', alignSelf: 'start' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginBottom: '16px' }}>
-            {t('snippets.addNew')}
-          </h3>
+        {canEditWorkspace && (
+          <div className="glass-panel" style={{ padding: '20px', borderRadius: '14px', alignSelf: 'start' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginBottom: '16px' }}>
+              {t('snippets.addNew')}
+            </h3>
 
-          <form onSubmit={handleAdd} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                {t('snippets.titleLabel')}
-              </label>
-              <input
-                type="text"
-                placeholder={t('snippets.titlePlaceholder')}
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                required
-                style={inputStyle}
-              />
-            </div>
+            <form onSubmit={handleAdd} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                  {t('snippets.titleLabel')}
+                </label>
+                <input
+                  type="text"
+                  placeholder={t('snippets.titlePlaceholder')}
+                  value={title}
+                  onChange={e => setTitle(e.target.value)}
+                  required
+                  style={inputStyle}
+                />
+              </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                {t('snippets.categoryLabel')}
-              </label>
-              <input
-                type="text"
-                value={category}
-                onChange={e => setCategory(e.target.value)}
-                style={inputStyle}
-              />
-            </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                  {t('snippets.categoryLabel')}
+                </label>
+                <input
+                  type="text"
+                  value={category}
+                  onChange={e => setCategory(e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
 
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                {t('snippets.commandLabel')}
-              </label>
-              <textarea
-                placeholder="tail -f /var/log/nginx/access.log"
-                value={command}
-                onChange={e => setCommand(e.target.value)}
-                required
-                rows={4}
-                style={{ ...inputStyle, fontFamily: 'var(--font-mono)' }}
-              />
-            </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                  {t('snippets.commandLabel')}
+                </label>
+                <textarea
+                  placeholder="tail -f /var/log/nginx/access.log"
+                  value={command}
+                  onChange={e => setCommand(e.target.value)}
+                  required
+                  rows={4}
+                  style={{ ...inputStyle, fontFamily: 'var(--font-mono)' }}
+                />
+              </div>
 
-            <button type="submit" className="btn-primary" style={{ justifyContent: 'center' }}>
-              <Plus size={16} /> {t('snippets.saveBtn')}
-            </button>
-          </form>
-        </div>
+              <button type="submit" className="btn-primary" style={{ justifyContent: 'center' }}>
+                <Plus size={16} /> {t('snippets.saveBtn')}
+              </button>
+            </form>
+          </div>
+        )}
 
         {/* Snippets List */}
         <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -127,12 +129,14 @@ export default function SnippetDrawer({ snippets, onSaveSnippet, onDeleteSnippet
                 </div>
               </div>
 
-              <button
-                onClick={() => onDeleteSnippet(snip.id)}
-                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
-              >
-                <Trash2 size={16} />
-              </button>
+              {canEditWorkspace && (
+                <button
+                  onClick={() => onDeleteSnippet(snip.id)}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                >
+                  <Trash2 size={16} />
+                </button>
+              )}
             </div>
           ))}
         </div>

@@ -445,13 +445,16 @@ export default function App() {
 
         {activeView === 'hosts' && (() => {
           const personalWs = (workspaces || []).find(w => w?.type === 'PERSONAL');
+          const activeWs = (workspaces || []).find(w => w?.id === activeWorkspaceId) || personalWs;
           const isPersonalActive = !activeWorkspaceId || (personalWs && activeWorkspaceId === personalWs.id);
+          const canEditWorkspace = !activeWs || activeWs.role === 'OWNER' || activeWs.role === 'ADMIN';
           const filteredConns = connections.filter(c => c && (c.collectionId === activeWorkspaceId || (!c.collectionId && isPersonalActive)));
           const filteredGroups = groups.filter(g => g && (g.collectionId === activeWorkspaceId || (!g.collectionId && isPersonalActive)));
 
           return (
             <HostList
               isLoggedIn={!!loggedInEmail}
+              canEditWorkspace={canEditWorkspace}
               connections={filteredConns}
               groups={filteredGroups}
               onConnectTerminal={handleConnectTerminal}
@@ -574,12 +577,15 @@ export default function App() {
 
         {activeView === 'snippets' && (() => {
           const personalWs = (workspaces || []).find(w => w?.type === 'PERSONAL');
+          const activeWs = (workspaces || []).find(w => w?.id === activeWorkspaceId) || personalWs;
           const isPersonalActive = !activeWorkspaceId || (personalWs && activeWorkspaceId === personalWs.id);
+          const canEditWorkspace = !activeWs || activeWs.role === 'OWNER' || activeWs.role === 'ADMIN';
           const filteredSnippets = snippets.filter(s => s && (s.collectionId === activeWorkspaceId || (!s.collectionId && isPersonalActive)));
           
           return (
             <SnippetDrawer 
               snippets={filteredSnippets} 
+              canEditWorkspace={canEditWorkspace}
               onSaveSnippet={handleSaveSnippet} 
               onDeleteSnippet={handleDeleteSnippet} 
             />
