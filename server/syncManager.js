@@ -335,7 +335,7 @@ class SyncManager {
 
       mergedData.workspaces = this.collections.map(c => ({
         id: c.collection.id,
-        name: c.collection.name,
+        name: c.collection.tenant ? c.collection.tenant.name : c.collection.name,
         type: c.collection.type,
         role: c.role
       }));

@@ -13,7 +13,10 @@ export async function GET(request) {
       where: { userId: user.id },
       include: {
         collection: {
-          include: { resources: true }
+          include: { 
+            resources: true,
+            tenant: true
+          }
         }
       }
     });
