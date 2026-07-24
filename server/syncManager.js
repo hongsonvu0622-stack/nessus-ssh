@@ -311,9 +311,14 @@ class SyncManager {
         const hexCollectionKey = cryptoUtil.decryptWithPrivateKey(personalAccess.encryptedKey, this.privateKey);
         const collectionKeyBuffer = Buffer.from(hexCollectionKey, 'hex');
 
+        const validCollectionIds = this.collections.map(c => c.collection.id);
         let pushCount = 0;
         const resourcesToPush = [];
+        
         for (const conn of data.connections) {
+          if (conn.collectionId && !validCollectionIds.includes(conn.collectionId)) {
+            conn.collectionId = personalAccess.collection.id; // Auto-recover orphaned data
+          }
           if (!conn.collectionId || conn.collectionId === personalAccess.collection.id) {
             const encPayload = cryptoUtil.encryptWithSymmetricKey(JSON.stringify(conn), collectionKeyBuffer);
             resourcesToPush.push({
@@ -327,6 +332,9 @@ class SyncManager {
         }
 
         for (const grp of data.groups || []) {
+          if (grp.collectionId && !validCollectionIds.includes(grp.collectionId)) {
+            grp.collectionId = personalAccess.collection.id;
+          }
           if (!grp.collectionId || grp.collectionId === personalAccess.collection.id) {
             const encPayload = cryptoUtil.encryptWithSymmetricKey(JSON.stringify(grp), collectionKeyBuffer);
             resourcesToPush.push({
@@ -340,6 +348,9 @@ class SyncManager {
         }
 
         for (const snip of data.snippets || []) {
+          if (snip.collectionId && !validCollectionIds.includes(snip.collectionId)) {
+            snip.collectionId = personalAccess.collection.id;
+          }
           if (!snip.collectionId || snip.collectionId === personalAccess.collection.id) {
             const encPayload = cryptoUtil.encryptWithSymmetricKey(JSON.stringify(snip), collectionKeyBuffer);
             resourcesToPush.push({
