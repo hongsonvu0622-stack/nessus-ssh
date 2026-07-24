@@ -7,11 +7,13 @@ import {
   Settings, 
   Terminal, 
   Cpu,
-  RefreshCw
+  RefreshCw,
+  ChevronDown,
+  Briefcase
 } from 'lucide-react';
 import { useI18n } from '../i18n/I18nContext.jsx';
 
-export default function Sidebar({ activeView, setActiveView, activeTabsCount, onOpenNewTerminal, hasNewUpdate, onCheckUpdate }) {
+export default function Sidebar({ activeView, setActiveView, activeTabsCount, onOpenNewTerminal, hasNewUpdate, onCheckUpdate, workspaces = [], activeWorkspaceId, setActiveWorkspaceId }) {
   const { lang, setLang, t } = useI18n();
 
   const navItems = [
@@ -54,6 +56,41 @@ export default function Sidebar({ activeView, setActiveView, activeTabsCount, on
           </div>
         </div>
       </div>
+
+      {/* Workspace Switcher */}
+      {workspaces && workspaces.length > 0 && (
+        <div style={{ padding: '0 12px 16px 12px' }}>
+          <div style={{ position: 'relative' }}>
+            <select
+              value={activeWorkspaceId || ''}
+              onChange={(e) => setActiveWorkspaceId(e.target.value)}
+              style={{
+                width: '100%',
+                appearance: 'none',
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '8px',
+                padding: '10px 36px 10px 14px',
+                color: '#fff',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                outline: 'none',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+              }}
+            >
+              {workspaces.map(w => w ? (
+                <option key={w.id} value={w.id} style={{ background: '#1e1e2e', color: '#fff' }}>
+                  {w.name} {w.type === 'SHARED' ? '(Shared)' : ''}
+                </option>
+              ) : null)}
+            </select>
+            <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }}>
+              <ChevronDown size={14} />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Navigation */}
       <nav style={{ flex: 1, padding: '0 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>

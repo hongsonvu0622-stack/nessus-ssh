@@ -25,7 +25,7 @@ export async function POST(request) {
 
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
 
-    return NextResponse.json({ token, userId: user.id, encPrivateKey: user.encPrivateKey });
+    return NextResponse.json({ token, userId: user.id, encPrivateKey: user.encPrivateKey, publicKey: user.publicKey });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

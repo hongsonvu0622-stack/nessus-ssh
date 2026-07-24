@@ -33,6 +33,7 @@ class SyncManager {
       const res = await axios.post(`${syncUrl}/auth/login`, { email, password });
       this.token = res.data.token;
       this.userId = res.data.userId;
+      this.publicKey = res.data.publicKey;
       
       this.socket.emit('sync:status', { message: 'Decrypting private key...', type: 'info' });
 
@@ -88,6 +89,7 @@ class SyncManager {
       this.token = res.data.token;
       this.userId = res.data.userId;
       this.privateKey = privateKey;
+      this.publicKey = publicKey;
       
       // The server created a Personal Collection for us, but we need to generate its AES key,
       // encrypt it with our public key, and upload it.
@@ -151,6 +153,7 @@ class SyncManager {
     this.userId = null;
     this.email = null;
     this.privateKey = null;
+    this.publicKey = null;
     this.derivedKey = null;
     try {
       if (fs.existsSync(AUTH_FILE)) {
@@ -330,6 +333,13 @@ class SyncManager {
       });
       mergedData.snippets = Array.from(mergedSnippetsMap.values());
 
+      mergedData.workspaces = this.collections.map(c => ({
+        id: c.collection.id,
+        name: c.collection.name,
+        type: c.collection.type,
+        role: c.role
+      }));
+
       dataStore.saveData(mergedData);
       data = mergedData; // Update the outer scope variable so push uses the merged state
 
@@ -344,17 +354,12 @@ class SyncManager {
         const personalAccess = validCollections.find(c => c.collection.type === 'PERSONAL');
         const personalCollectionId = personalAccess?.collection.id;
         
-        // Build maps for routing and encryption
         const keyBuffers = new Map();
-        const nameToId = new Map();
         
         for (const access of validCollections) {
           const hexCollectionKey = cryptoUtil.decryptWithPrivateKey(access.encryptedKey, this.privateKey);
           if (hexCollectionKey) {
             keyBuffers.set(access.collection.id, Buffer.from(hexCollectionKey, 'hex'));
-            if (access.collection.type === 'SHARED') {
-              nameToId.set(access.collection.name, access.collection.id); // Auto-routing map (Group Name -> Shared Vault ID)
-            }
           }
         }
         
@@ -372,37 +377,12 @@ class SyncManager {
         let pushCount = 0;
 
         const processResource = (item, type) => {
-          let currentId = item.collectionId;
-          let targetId = personalCollectionId;
+          let targetId = item.collectionId;
           
-          // Auto-route based on Group Name matching Tenant Name
-          if (type === 'CONNECTION') {
-             const mappedId = nameToId.get(item.group);
-             if (mappedId) {
-                targetId = mappedId;
-             } else if (currentId && keyBuffers.has(currentId)) {
-                targetId = currentId; // keep current if valid
-             }
-          } else if (type === 'GROUP') {
-             const mappedId = nameToId.get(item.name);
-             if (mappedId) {
-                targetId = mappedId;
-             } else if (currentId && keyBuffers.has(currentId)) {
-                targetId = currentId;
-             }
-          } else {
-             if (currentId && keyBuffers.has(currentId)) {
-                targetId = currentId;
-             }
+          if (!targetId || !keyBuffers.has(targetId)) {
+             targetId = personalCollectionId; // Fallback to Personal Vault
           }
-
-          if (!targetId) targetId = personalCollectionId; // Absolute fallback to Personal Vault
           if (!targetId) return; // Skip if no target available
-
-          // If the resource is moving from an old vault to a new one, we must issue a DELETE to the old vault
-          if (currentId && currentId !== targetId && keyBuffers.has(currentId)) {
-             pushPayloads[currentId].deletedIds.push(item.id);
-          }
           
           item.collectionId = targetId; // Update local metadata
           item.isShared = validCollections.find(c => c.collection.id === targetId)?.collection.type === 'SHARED';

@@ -5,7 +5,7 @@ import HostModal from './components/HostModal';
 import TerminalTab from './components/TerminalTab';
 import SftpBrowser from './components/SftpBrowser';
 import SnippetDrawer from './components/SnippetDrawer';
-import IdentityManager from './components/IdentityManager';
+import IdentityManager from './components/IdentityManager.jsx';
 import SerialScannerModal from './components/SerialScannerModal';
 import UpdateModal from './components/UpdateModal';
 import CloudSync from './components/CloudSync';
@@ -45,6 +45,10 @@ export default function App() {
   // Sync state
   const [isSyncing, setIsSyncing] = useState(false);
   const [loggedInEmail, setLoggedInEmail] = useState('');
+  
+  // Workspace (Vault) state
+  const [workspaces, setWorkspaces] = useState([]);
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState(null);
 
   const loadAllData = async () => {
     try {
@@ -77,6 +81,15 @@ export default function App() {
         setSnippets(loadedSnippets);
         setDeletedResourceIds(loadedDeletedIds);
         setSettings(res.settings || {});
+        
+        const loadedWorkspaces = res.workspaces || [];
+        setWorkspaces(loadedWorkspaces);
+        
+        // Auto-select a workspace if none is selected
+        if (!activeWorkspaceId && loadedWorkspaces.length > 0) {
+          const personal = loadedWorkspaces.find(w => w.type === 'PERSONAL');
+          setActiveWorkspaceId(personal ? personal.id : loadedWorkspaces[0].id);
+        }
         
         // Auto-save if anything was hard-deleted by auto-clear
         if (loadedDeletedIds.length > (res.deletedResourceIds?.length || 0)) {
@@ -144,6 +157,14 @@ export default function App() {
         setSnippets(loadedSnippets);
         setDeletedResourceIds(loadedDeletedIds);
         setSettings(data.settings || {});
+        
+        const loadedWorkspaces = data.workspaces || [];
+        setWorkspaces(loadedWorkspaces);
+        
+        if (!activeWorkspaceId && loadedWorkspaces.length > 0) {
+          const personal = loadedWorkspaces.find(w => w.type === 'PERSONAL');
+          setActiveWorkspaceId(personal ? personal.id : loadedWorkspaces[0].id);
+        }
         
         if (needsSave) {
           persistData(loadedConns, loadedGroups, loadedSnippets, undefined, loadedDeletedIds);
@@ -245,8 +266,14 @@ export default function App() {
 
   // Save / Update connection
   const handleSaveConnection = async (conn) => {
-    conn.updatedAt = Date.now();
+    // If it's a completely new connection (no id generated yet, though HostModal generates id, wait, HostModal generates id! So we check if it already exists)
     const exists = connections.find(c => c.id === conn.id);
+    if (!exists && activeWorkspaceId && !conn.collectionId) {
+      conn.collectionId = activeWorkspaceId;
+      conn.isShared = workspaces.find(w => w.id === activeWorkspaceId)?.type === 'SHARED';
+    }
+    
+    conn.updatedAt = Date.now();
     let updated;
     if (exists) {
       updated = connections.map(c => c.id === conn.id ? conn : c);
@@ -308,6 +335,9 @@ export default function App() {
 
   // Snippet management
   const handleSaveSnippet = async (snip) => {
+    if (!snip.id && activeWorkspaceId) {
+      snip.collectionId = activeWorkspaceId;
+    }
     const updated = [snip, ...snippets];
     setSnippets(updated);
     await persistData(undefined, undefined, updated);
@@ -353,6 +383,9 @@ export default function App() {
           socket.emit('updater:check');
           setShowUpdateModal(true);
         }}
+        workspaces={workspaces}
+        activeWorkspaceId={activeWorkspaceId}
+        setActiveWorkspaceId={setActiveWorkspaceId}
         onOpenNewTerminal={(shellType = 'zsh') => {
           let name = 'Local Shell';
           let shell = '/bin/zsh';
@@ -410,12 +443,18 @@ export default function App() {
           </div>
         )}
 
-        {activeView === 'hosts' && (
-          <HostList
-            isLoggedIn={!!loggedInEmail}
-            connections={connections}
-            groups={groups}
-            onConnectTerminal={handleConnectTerminal}
+        {activeView === 'hosts' && (() => {
+          const personalWs = (workspaces || []).find(w => w?.type === 'PERSONAL');
+          const isPersonalActive = !activeWorkspaceId || (personalWs && activeWorkspaceId === personalWs.id);
+          const filteredConns = connections.filter(c => c && (c.collectionId === activeWorkspaceId || (!c.collectionId && isPersonalActive)));
+          const filteredGroups = groups.filter(g => g && (g.collectionId === activeWorkspaceId || (!g.collectionId && isPersonalActive)));
+
+          return (
+            <HostList
+              isLoggedIn={!!loggedInEmail}
+              connections={filteredConns}
+              groups={filteredGroups}
+              onConnectTerminal={handleConnectTerminal}
             onRdpConnect={handleRdpConnect}
             onOpenSftp={handleOpenSftp}
             onOpenModal={(data) => {
@@ -426,13 +465,22 @@ export default function App() {
             onScanSerial={() => setShowSerialScanner(true)}
             onImportSshConfig={handleImportSshConfig}
             onSaveBatch={async (newConns, newGroups) => {
-              setConnections(newConns);
-              if (newGroups) setGroups(newGroups);
-              await persistData(newConns, newGroups);
+              const processedConns = newConns.map(c => {
+                if (!c.collectionId && activeWorkspaceId) c.collectionId = activeWorkspaceId;
+                return c;
+              });
+              const processedGroups = newGroups.map(g => {
+                if (!g.collectionId && activeWorkspaceId) g.collectionId = activeWorkspaceId;
+                return g;
+              });
+              setConnections(processedConns);
+              setGroups(processedGroups);
+              await persistData(processedConns, processedGroups);
             }}
             onCreateGroup={async (groupName) => {
               if (groups.some(g => g.name === groupName)) return;
-              const updatedGroups = [...groups, { name: groupName }];
+              const newGroup = { name: groupName, collectionId: activeWorkspaceId };
+              const updatedGroups = [...groups, newGroup];
               setGroups(updatedGroups);
               await persistData(undefined, updatedGroups);
             }}
@@ -500,7 +548,8 @@ export default function App() {
               socket.emit('sync:force');
             }}
           />
-        )}
+          );
+        })()}
 
         {activeView === 'terminal' && (
           <TerminalTab
@@ -523,13 +572,19 @@ export default function App() {
           />
         )}
 
-        {activeView === 'snippets' && (
-          <SnippetDrawer
-            snippets={snippets}
-            onSaveSnippet={handleSaveSnippet}
-            onDeleteSnippet={handleDeleteSnippet}
-          />
-        )}
+        {activeView === 'snippets' && (() => {
+          const personalWs = (workspaces || []).find(w => w?.type === 'PERSONAL');
+          const isPersonalActive = !activeWorkspaceId || (personalWs && activeWorkspaceId === personalWs.id);
+          const filteredSnippets = snippets.filter(s => s && (s.collectionId === activeWorkspaceId || (!s.collectionId && isPersonalActive)));
+          
+          return (
+            <SnippetDrawer 
+              snippets={filteredSnippets} 
+              onSaveSnippet={handleSaveSnippet} 
+              onDeleteSnippet={handleDeleteSnippet} 
+            />
+          );
+        })()}
 
         {activeView === 'identities' && (
           <IdentityManager />
