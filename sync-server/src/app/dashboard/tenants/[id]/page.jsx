@@ -81,6 +81,12 @@ export default function TenantDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [expandedVaults, setExpandedVaults] = useState({});
+
+  // Invite state
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState('MEMBER');
+  
   const router = useRouter();
   const params = useParams();
   const tenantId = params.id;
@@ -134,6 +140,24 @@ export default function TenantDetailsPage() {
     }
   };
 
+  const handleInvite = async () => {
+    if (!inviteEmail) return;
+    try {
+      const token = localStorage.getItem('sync_admin_token');
+      await axios.post(`/api/admin/tenants/${tenantId}/invite`, 
+        { email: inviteEmail, role: inviteRole },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setShowInviteModal(false);
+      setInviteEmail('');
+      setInviteRole('MEMBER');
+      fetchTenant();
+      alert('User invited successfully!');
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to invite user');
+    }
+  };
+
   const toggleVault = (vaultId) => {
     setExpandedVaults(prev => ({ ...prev, [vaultId]: !prev[vaultId] }));
   };
@@ -179,8 +203,18 @@ export default function TenantDetailsPage() {
         {/* Left Column: Users */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="p-4 border-b border-gray-100 bg-gray-50 font-semibold text-gray-700 flex items-center gap-2">
-              <Users size={18} /> Users ({tenant.users.length})
+            <div className="p-4 border-b border-gray-100 bg-gray-50 font-semibold text-gray-700 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Users size={18} /> Users ({tenant.users.length})
+              </div>
+              {tenant.currentUserRole !== 'VIEWER' && (
+                <button 
+                  onClick={() => setShowInviteModal(true)} 
+                  className="text-xs font-medium text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition px-2 py-1 rounded border border-indigo-100"
+                >
+                  + Invite
+                </button>
+              )}
             </div>
             <ul className="divide-y divide-gray-50">
               {tenant.users.map(tu => (
@@ -249,8 +283,44 @@ export default function TenantDetailsPage() {
             </div>
           </div>
         </div>
-
       </div>
+
+      {/* Invite Modal */}
+      {showInviteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+            <h2 className="text-xl font-bold mb-4">Invite Member</h2>
+            <p className="text-sm text-gray-500 mb-6">Enter the email address of the user you want to invite. They must have already registered an account.</p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                <input
+                  type="email"
+                  value={inviteEmail}
+                  onChange={e => setInviteEmail(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                  placeholder="user@example.com"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                <select
+                  value={inviteRole}
+                  onChange={e => setInviteRole(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                >
+                  <option value="MEMBER">Member</option>
+                  <option value="ADMIN">Admin</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-8">
+              <button onClick={() => setShowInviteModal(false)} className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-lg transition">Cancel</button>
+              <button onClick={handleInvite} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition">Send Invite</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
