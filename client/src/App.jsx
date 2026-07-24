@@ -225,6 +225,7 @@ export default function App() {
 
   // Save / Update connection
   const handleSaveConnection = async (conn) => {
+    conn.updatedAt = Date.now();
     const exists = connections.find(c => c.id === conn.id);
     let updated;
     if (exists) {
@@ -239,7 +240,7 @@ export default function App() {
 
   const handleDeleteConnection = async (id) => {
     if (!window.confirm('Đưa máy chủ này vào Thùng rác?')) return;
-    const updated = connections.map(c => c.id === id ? { ...c, deletedAt: Date.now() } : c);
+    const updated = connections.map(c => c.id === id ? { ...c, deletedAt: Date.now(), updatedAt: Date.now() } : c);
     setConnections(updated);
     await persistData(updated);
   };
@@ -248,6 +249,7 @@ export default function App() {
     const updated = connections.map(c => {
       if (c.id === id) {
         const { deletedAt, ...rest } = c;
+        rest.updatedAt = Date.now();
         return rest;
       }
       return c;
@@ -273,7 +275,9 @@ export default function App() {
         alert('Không tìm thấy cấu hình Host trong ~/.ssh/config.');
         return;
       }
-      const updated = [...imported, ...connections];
+      const now = Date.now();
+      const updatedImported = imported.map(c => ({ ...c, updatedAt: now }));
+      const updated = [...updatedImported, ...connections];
       setConnections(updated);
       await persistData(updated);
       alert(`✔ Đã nhập tự động ${imported.length} kết nối từ ~/.ssh/config!`);
@@ -419,16 +423,19 @@ export default function App() {
               await persistData(updatedConns, updatedGroups);
             }}
             onDeleteGroup={async (groupName) => {
-              const updatedGroups = groups.map(g => g.name === groupName ? { ...g, deletedAt: Date.now() } : g);
-              const updatedConns = connections.map(c => (c.group || 'Default') === groupName ? { ...c, deletedAt: Date.now() } : c);
+              const now = Date.now();
+              const updatedGroups = groups.map(g => g.name === groupName ? { ...g, deletedAt: now, updatedAt: now } : g);
+              const updatedConns = connections.map(c => (c.group || 'Default') === groupName ? { ...c, deletedAt: now, updatedAt: now } : c);
               setGroups(updatedGroups);
               setConnections(updatedConns);
               await persistData(updatedConns, updatedGroups);
             }}
             onRestoreGroup={async (groupName) => {
+              const now = Date.now();
               const updatedGroups = groups.map(g => {
                 if (g.name === groupName) {
                   const { deletedAt, ...rest } = g;
+                  rest.updatedAt = now;
                   return rest;
                 }
                 return g;
@@ -436,6 +443,7 @@ export default function App() {
               const updatedConns = connections.map(c => {
                 if ((c.group || 'Default') === groupName) {
                   const { deletedAt, ...rest } = c;
+                  rest.updatedAt = now;
                   return rest;
                 }
                 return c;
