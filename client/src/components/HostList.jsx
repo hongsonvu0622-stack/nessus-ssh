@@ -47,7 +47,9 @@ export default function HostList({
   onHardDeleteGroup,
   onRestoreConnection,
   onHardDeleteConnection,
-  onRdpConnect
+  onRdpConnect,
+  onQuickSync,
+  isSyncing
 }) {
   const { t, lang } = useI18n();
   const [search, setSearch] = useState('');
