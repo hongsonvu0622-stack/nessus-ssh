@@ -1134,7 +1134,7 @@ export default function HostList({
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: '1.5' }}>
               {deleteModal.count > 0 ? (
                 <>
-                  Thư mục này đang chứa <b>{deleteModal.count} máy chủ</b>. Khi xóa, các máy chủ bên trong sẽ được chuyển an toàn về thư mục <b>"Production"</b>.
+                  Thư mục này đang chứa <b>{deleteModal.count} máy chủ</b>. Khi xóa thư mục, <b>toàn bộ các máy chủ bên trong cũng sẽ bị xóa vĩnh viễn</b>. Bạn có chắc chắn không?
                 </>
               ) : (
                 <>Thư mục này hiện đang trống. Bạn có chắc chắn muốn xóa khỏi danh sách?</>

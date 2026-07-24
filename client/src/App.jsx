@@ -338,7 +338,7 @@ export default function App() {
             }}
             onDeleteGroup={async (groupName) => {
               const updatedGroups = groups.filter(g => g.name !== groupName);
-              const updatedConns = connections.map(c => (c.group || 'Default') === groupName ? { ...c, group: 'Default' } : c);
+              const updatedConns = connections.filter(c => (c.group || 'Default') !== groupName);
               setGroups(updatedGroups);
               setConnections(updatedConns);
               await persistData(updatedConns, updatedGroups);
