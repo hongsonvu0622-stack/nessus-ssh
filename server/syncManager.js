@@ -1,0 +1,314 @@
+const axios = require('axios');
+const cryptoUtil = require('./cryptoUtil');
+const dataStore = require('./dataStore');
+const keytar = require('keytar');
+
+const KEYTAR_SERVICE = 'NexusSSH_Sync';
+const KEYTAR_ACCOUNT = 'default';
+
+class SyncManager {
+  constructor(socket) {
+    this.socket = socket;
+    this.token = null;
+    this.syncUrl = null;
+    this.derivedKey = null;
+    this.privateKey = null;
+    this.userId = null;
+    this.email = null;
+  }
+
+  async loginAndSync({ email, password, syncUrl }) {
+    try {
+      this.email = email;
+      this.syncUrl = syncUrl;
+      this.socket.emit('sync:status', { message: 'Deriving encryption keys...', type: 'info' });
+      
+      // 1. Derive key from password
+      this.derivedKey = cryptoUtil.deriveKeyFromPassword(password);
+
+      this.socket.emit('sync:status', { message: 'Authenticating with Sync Server...', type: 'info' });
+      
+      // 2. Login
+      const res = await axios.post(`${syncUrl}/auth/login`, { email, password });
+      this.token = res.data.token;
+      this.userId = res.data.userId;
+      
+      this.socket.emit('sync:status', { message: 'Decrypting private key...', type: 'info' });
+
+      // 3. Decrypt Private Key
+      const encPrivateKey = res.data.encPrivateKey;
+      this.privateKey = cryptoUtil.decryptWithSymmetricKey(encPrivateKey, this.derivedKey);
+      
+      if (!this.privateKey) {
+        throw new Error('Failed to decrypt private key. Incorrect sync password?');
+      }
+
+      // Save to keychain for auto-login
+      try {
+        await keytar.setPassword(KEYTAR_SERVICE, KEYTAR_ACCOUNT, JSON.stringify({ email, password, syncUrl }));
+      } catch (e) {
+        console.warn('Failed to save to keychain', e);
+      }
+
+      this.socket.emit('sync:auth_success', { email });
+      await this.performSync();
+      
+    } catch (err) {
+      console.error('Sync Login Error:', err.response?.data || err.message);
+      this.socket.emit('sync:status', { 
+        message: err.response?.data?.error || err.message || 'Login failed', 
+        type: 'error' 
+      });
+    }
+  }
+
+  async register({ email, password, syncUrl }) {
+    try {
+      this.email = email;
+      this.syncUrl = syncUrl;
+      this.socket.emit('sync:status', { message: 'Generating RSA Keypair (2048-bit)...', type: 'info' });
+      
+      const { publicKey, privateKey } = cryptoUtil.generateRSAKeyPair();
+      this.derivedKey = cryptoUtil.deriveKeyFromPassword(password);
+      
+      const encPrivateKey = cryptoUtil.encryptWithSymmetricKey(privateKey, this.derivedKey);
+
+      this.socket.emit('sync:status', { message: 'Registering account on Sync Server...', type: 'info' });
+      
+      const res = await axios.post(`${syncUrl}/auth/register`, {
+        email,
+        password,
+        publicKey,
+        encPrivateKey
+      });
+
+      this.token = res.data.token;
+      this.userId = res.data.userId;
+      this.privateKey = privateKey;
+      
+      // The server created a Personal Collection for us, but we need to generate its AES key,
+      // encrypt it with our public key, and upload it.
+      const personalCollectionId = res.data.personalCollectionId;
+      
+      this.socket.emit('sync:status', { message: 'Initializing Personal Vault E2EE...', type: 'info' });
+      
+      const collectionKey = require('crypto').randomBytes(32);
+      const encryptedCollectionKey = cryptoUtil.encryptWithPublicKey(collectionKey.toString('hex'), publicKey);
+      
+      await axios.post(`${syncUrl}/collections/${personalCollectionId}/keys`, {
+        targetUserId: this.userId,
+        encryptedKey: encryptedCollectionKey,
+        role: 'MANAGER'
+      }, {
+        headers: { Authorization: `Bearer ${this.token}` }
+      });
+
+      // Save to keychain for auto-login
+      try {
+        await keytar.setPassword(KEYTAR_SERVICE, KEYTAR_ACCOUNT, JSON.stringify({ email, password, syncUrl }));
+      } catch (e) {
+        console.warn('Failed to save to keychain', e);
+      }
+
+      this.socket.emit('sync:auth_success', { email });
+      await this.performSync();
+      
+    } catch (err) {
+      console.error('Sync Register Error:', err.response?.data || err.message);
+      this.socket.emit('sync:status', { 
+        message: err.response?.data?.error || err.message || 'Registration failed', 
+        type: 'error' 
+      });
+    }
+  }
+
+  async checkAutoLogin() {
+    try {
+      const creds = await keytar.getPassword(KEYTAR_SERVICE, KEYTAR_ACCOUNT);
+      if (creds) {
+        const { email, password, syncUrl } = JSON.parse(creds);
+        if (email && password && syncUrl) {
+          this.socket.emit('sync:status', { message: 'Auto-logging in...', type: 'info' });
+          await this.loginAndSync({ email, password, syncUrl });
+          return true;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to read from keychain', e);
+    }
+    return false;
+  }
+
+  async logout() {
+    this.token = null;
+    this.userId = null;
+    this.email = null;
+    this.privateKey = null;
+    this.derivedKey = null;
+    try {
+      await keytar.deletePassword(KEYTAR_SERVICE, KEYTAR_ACCOUNT);
+    } catch (e) {
+      console.warn('Failed to delete keychain', e);
+    }
+    this.socket.emit('sync:logged_out');
+  }
+
+  async performSync() {
+    try {
+      this.socket.emit('sync:status', { message: 'Pulling encrypted collections...', type: 'info' });
+      
+      // Pull Collections
+      const res = await axios.get(`${this.syncUrl}/sync/pull`, {
+        headers: { Authorization: `Bearer ${this.token}` }
+      });
+
+      const collections = res.data;
+      let newConnections = [];
+      let newGroups = [];
+      let newSnippets = [];
+
+      for (const access of collections) {
+        // Decrypt the Collection Key using our RSA Private Key
+        const hexCollectionKey = cryptoUtil.decryptWithPrivateKey(access.encryptedKey, this.privateKey);
+        if (!hexCollectionKey) {
+          console.warn(`Could not decrypt key for collection ${access.collection.name}`);
+          continue;
+        }
+        
+        const collectionKeyBuffer = Buffer.from(hexCollectionKey, 'hex');
+
+        // Decrypt all resources in this collection
+        for (const resource of access.collection.resources) {
+          if (resource.type === 'CONNECTION') {
+            const decPayload = cryptoUtil.decryptWithSymmetricKey(resource.encPayload, collectionKeyBuffer);
+            if (decPayload && !decPayload.startsWith('ENC:v1:')) {
+              try {
+                const conn = JSON.parse(decPayload);
+                conn.collectionId = access.collection.id; // tag it
+                newConnections.push(conn);
+              } catch (e) {
+                console.error('Failed to parse decrypted resource', e);
+              }
+            }
+          } else if (resource.type === 'GROUP') {
+            const decPayload = cryptoUtil.decryptWithSymmetricKey(resource.encPayload, collectionKeyBuffer);
+            if (decPayload && !decPayload.startsWith('ENC:v1:')) {
+              try {
+                const grp = JSON.parse(decPayload);
+                grp.collectionId = access.collection.id;
+                newGroups.push(grp);
+              } catch (e) {}
+            }
+          } else if (resource.type === 'SNIPPET') {
+            const decPayload = cryptoUtil.decryptWithSymmetricKey(resource.encPayload, collectionKeyBuffer);
+            if (decPayload && !decPayload.startsWith('ENC:v1:')) {
+              try {
+                const snip = JSON.parse(decPayload);
+                snip.collectionId = access.collection.id;
+                newSnippets.push(snip);
+              } catch (e) {}
+            }
+          }
+        }
+      }
+
+      // Merge with local connections (Simple merge for MVP: overwrite local with same ID)
+      const data = dataStore.loadData();
+      const localConns = data.connections || [];
+      const localGroups = data.groups || [];
+      const localSnippets = data.snippets || [];
+      
+      const mergedMap = new Map();
+      localConns.forEach(c => mergedMap.set(c.id, c));
+      newConnections.forEach(c => mergedMap.set(c.id, c));
+      data.connections = Array.from(mergedMap.values());
+
+      const mergedGroupsMap = new Map();
+      localGroups.forEach(c => mergedGroupsMap.set(c.id, c));
+      newGroups.forEach(c => mergedGroupsMap.set(c.id, c));
+      data.groups = Array.from(mergedGroupsMap.values());
+
+      const mergedSnippetsMap = new Map();
+      localSnippets.forEach(c => mergedSnippetsMap.set(c.id, c));
+      newSnippets.forEach(c => mergedSnippetsMap.set(c.id, c));
+      data.snippets = Array.from(mergedSnippetsMap.values());
+
+      dataStore.saveData(data);
+
+      this.socket.emit('sync:status', { message: `Sync Pull complete! Decrypted ${newConnections.length} remote resources. Pushing local updates...`, type: 'info' });
+
+      // Find the Personal Collection to push to
+      const personalAccess = collections.find(c => c.collection.type === 'PERSONAL');
+      if (personalAccess) {
+        const hexCollectionKey = cryptoUtil.decryptWithPrivateKey(personalAccess.encryptedKey, this.privateKey);
+        const collectionKeyBuffer = Buffer.from(hexCollectionKey, 'hex');
+
+        let pushCount = 0;
+        const resourcesToPush = [];
+        for (const conn of data.connections) {
+          // Only push connections that belong to the personal collection or have no collectionId
+          if (!conn.collectionId || conn.collectionId === personalAccess.collection.id) {
+            const encPayload = cryptoUtil.encryptWithSymmetricKey(JSON.stringify(conn), collectionKeyBuffer);
+            resourcesToPush.push({
+              id: conn.id,
+              type: 'CONNECTION',
+              name: conn.name || 'Unknown Connection',
+              encPayload
+            });
+          }
+        }
+
+        for (const grp of data.groups || []) {
+          if (!grp.collectionId || grp.collectionId === personalAccess.collection.id) {
+            const encPayload = cryptoUtil.encryptWithSymmetricKey(JSON.stringify(grp), collectionKeyBuffer);
+            resourcesToPush.push({
+              id: grp.id,
+              type: 'GROUP',
+              name: grp.name || 'Unknown Group',
+              encPayload
+            });
+          }
+        }
+
+        for (const snip of data.snippets || []) {
+          if (!snip.collectionId || snip.collectionId === personalAccess.collection.id) {
+            const encPayload = cryptoUtil.encryptWithSymmetricKey(JSON.stringify(snip), collectionKeyBuffer);
+            resourcesToPush.push({
+              id: snip.id,
+              type: 'SNIPPET',
+              name: snip.title || 'Unknown Snippet',
+              encPayload
+            });
+          }
+        }
+        
+        if (resourcesToPush.length > 0) {
+          try {
+            await axios.post(`${this.syncUrl}/sync/push`, {
+              collectionId: personalAccess.collection.id,
+              resources: resourcesToPush
+            }, { headers: { Authorization: `Bearer ${this.token}` } });
+            pushCount = resourcesToPush.length;
+          } catch (e) {
+            console.error(`Failed to push resources:`, e.response?.data || e.message);
+          }
+        }
+        this.socket.emit('sync:status', { message: `Sync complete! Pushed ${pushCount} local resources.`, type: 'success' });
+      } else {
+        this.socket.emit('sync:status', { message: `Sync complete! (No personal vault found to push).`, type: 'success' });
+      }
+      
+      // Trigger UI reload
+      this.socket.emit('data:update', data);
+
+    } catch (err) {
+      console.error('Sync Error:', err.response?.data || err.message);
+      this.socket.emit('sync:status', { 
+        message: err.response?.data?.error || err.message || 'Sync failed', 
+        type: 'error' 
+      });
+    }
+  }
+}
+
+module.exports = SyncManager;

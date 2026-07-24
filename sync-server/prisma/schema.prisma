@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
@@ -22,6 +23,7 @@ model User {
   passwordHash   String   // Hash of Login Password
   publicKey      String   // RSA Public Key
   encPrivateKey  String   // RSA Private Key encrypted with Master Password
+  isSuperAdmin   Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -72,6 +74,7 @@ model CollectionUser {
 model Resource {
   id             String   @id @default(uuid())
   collectionId   String
+  name           String   @default("Unknown Resource")
   type           String   // "CONNECTION", "SNIPPET", "SSH_KEY"
   encPayload     String   // The resource JSON, encrypted using the Collection's AES key
   createdAt      DateTime @default(now())

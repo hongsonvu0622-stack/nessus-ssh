@@ -11,6 +11,7 @@ const localPtyManager = require('./localPtyManager');
 const sftpManager = require('./sftpManager');
 const updater = require('./updater');
 const rdpManager = require('./rdpManager');
+const SyncManager = require('./syncManager');
 
 const app = express();
 const server = http.createServer(app);
@@ -247,6 +248,34 @@ io.on('connection', (socket) => {
       socket.emit('rdp:launched', result);
     } catch (err) {
       socket.emit('rdp:error', { message: err.message });
+    }
+  });
+
+  // Cloud Sync
+  const syncManager = new SyncManager(socket);
+  syncManager.checkAutoLogin();
+  
+  socket.on('sync:login', async (payload) => {
+    await syncManager.loginAndSync(payload);
+  });
+  
+  socket.on('sync:register', async (payload) => {
+    await syncManager.register(payload);
+  });
+
+  socket.on('sync:logout', async () => {
+    await syncManager.logout();
+  });
+
+  socket.on('sync:check_auth', () => {
+    if (syncManager.token && syncManager.email) {
+      socket.emit('sync:auth_success', { email: syncManager.email });
+    }
+  });
+
+  socket.on('sync:force', async () => {
+    if (syncManager.token) {
+      await syncManager.performSync();
     }
   });
 

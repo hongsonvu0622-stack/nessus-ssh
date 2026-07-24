@@ -15,3 +15,20 @@ export function verifyAuth(request) {
     return null;
   }
 }
+
+export async function verifySuperAdmin(request) {
+  const decoded = verifyAuth(request);
+  if (!decoded) return null;
+
+  try {
+    const { prisma } = await import('@/lib/prisma');
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId }
+    });
+    if (!user || !user.isSuperAdmin) return null;
+    return user;
+  } catch (err) {
+    console.error('verifySuperAdmin error:', err);
+    return null;
+  }
+}
