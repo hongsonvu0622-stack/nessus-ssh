@@ -42,6 +42,9 @@ export default function App() {
   // RDP status notice
   const [rdpNotice, setRdpNotice] = useState(null);
 
+  // Sync state
+  const [isSyncing, setIsSyncing] = useState(false);
+
   const loadAllData = async () => {
     try {
       const res = await fetchData();
@@ -142,11 +145,18 @@ export default function App() {
         setSettings(data.settings || {});
         
         if (needsSave) {
-          persistData(loadedConns, loadedGroups, loadedSnippets, data.settings, loadedDeletedIds);
+          persistData(loadedConns, loadedGroups, loadedSnippets, undefined, loadedDeletedIds);
         }
       }
     };
+
     socket.on('data:update', onDataUpdate);
+
+    const onSyncSuccess = () => setIsSyncing(false);
+    const onSyncError = () => setIsSyncing(false);
+    
+    socket.on('sync:success', onSyncSuccess);
+    socket.on('sync:error', onSyncError);
 
     const timer = setTimeout(() => {
       if (autoCheckUpdate) {
@@ -161,6 +171,8 @@ export default function App() {
       socket.off('rdp:launched', onRdpLaunched);
       socket.off('rdp:error', onRdpError);
       socket.off('data:update', onDataUpdate);
+      socket.off('sync:success', onSyncSuccess);
+      socket.off('sync:error', onSyncError);
     };
   }, []);
 
@@ -473,6 +485,11 @@ export default function App() {
             }}
             onRestoreConnection={handleRestoreConnection}
             onHardDeleteConnection={handleHardDeleteConnection}
+            isSyncing={isSyncing}
+            onQuickSync={() => {
+              setIsSyncing(true);
+              socket.emit('sync:force');
+            }}
           />
         )}
 
