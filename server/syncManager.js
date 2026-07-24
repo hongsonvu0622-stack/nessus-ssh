@@ -355,23 +355,21 @@ class SyncManager {
         const deletedIds = data.deletedResourceIds || [];
 
         // Execute push
-        if (pushCount > 0 || deletedIds.length > 0) {
-          this.socket.emit('sync:status', { message: `Pushing ${pushCount} local updates and ${deletedIds.length} deletions to server...`, type: 'info' });
-          try {
-            await axios.post(`${this.syncUrl}/sync/push`, {
-              collectionId: personalAccess.collection.id,
-              resources: resourcesToPush,
-              deletedIds: deletedIds
-            }, {
-              headers: { Authorization: `Bearer ${this.token}` }
-            });
-            
-            // Clear deletedResourceIds after successful push
-            data.deletedResourceIds = [];
-            dataStore.saveData(data);
-          } catch (e) {
-            console.error(`Failed to push resources:`, e.response?.data || e.message);
-          }
+        this.socket.emit('sync:status', { message: `Pushing ${pushCount} local updates and ${deletedIds.length} deletions to server...`, type: 'info' });
+        try {
+          await axios.post(`${this.syncUrl}/sync/push`, {
+            collectionId: personalAccess.collection.id,
+            resources: resourcesToPush,
+            deletedIds: deletedIds
+          }, {
+            headers: { Authorization: `Bearer ${this.token}` }
+          });
+          
+          // Clear deletedResourceIds after successful push
+          data.deletedResourceIds = [];
+          dataStore.saveData(data);
+        } catch (e) {
+          console.error(`Failed to push resources:`, e.response?.data || e.message);
         }
 
         this.socket.emit('sync:status', { message: `Sync complete! Pushed ${pushCount} local resources.`, type: 'success' });
