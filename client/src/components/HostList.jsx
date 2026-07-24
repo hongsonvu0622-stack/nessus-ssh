@@ -15,6 +15,7 @@ import {
   FolderOpen,
   ChevronDown,
   ChevronRight,
+  Clock,
   Upload,
   FileSpreadsheet,
   FileJson,
@@ -380,6 +381,13 @@ export default function HostList({
                 ? 'Local macOS Shell (/bin/zsh)'
                 : `${conn.username || 'root'}@${conn.host}:${conn.port || 22}`}
             </div>
+            
+            {viewMode === 'trash' && conn.deletedAt && (
+              <div style={{ fontSize: '11px', color: '#ef4444', marginTop: '6px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Clock size={12} />
+                Xóa vĩnh viễn sau {Math.max(1, Math.ceil((30 * 24 * 60 * 60 * 1000 - (Date.now() - conn.deletedAt)) / (24 * 60 * 60 * 1000)))} ngày
+              </div>
+            )}
           </div>
         </div>
 
