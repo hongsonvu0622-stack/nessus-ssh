@@ -447,7 +447,7 @@ export default function App() {
           const personalWs = (workspaces || []).find(w => w?.type === 'PERSONAL');
           const activeWs = (workspaces || []).find(w => w?.id === activeWorkspaceId) || personalWs;
           const isPersonalActive = !activeWorkspaceId || (personalWs && activeWorkspaceId === personalWs.id);
-          const canEditWorkspace = !activeWs || activeWs.role === 'OWNER' || activeWs.role === 'ADMIN';
+          const canEditWorkspace = !activeWs || ['MANAGER', 'EDITOR'].includes(activeWs.role);
           const filteredConns = connections.filter(c => c && (c.collectionId === activeWorkspaceId || (!c.collectionId && isPersonalActive)));
           const filteredGroups = groups.filter(g => g && (g.collectionId === activeWorkspaceId || (!g.collectionId && isPersonalActive)));
 
@@ -579,7 +579,7 @@ export default function App() {
           const personalWs = (workspaces || []).find(w => w?.type === 'PERSONAL');
           const activeWs = (workspaces || []).find(w => w?.id === activeWorkspaceId) || personalWs;
           const isPersonalActive = !activeWorkspaceId || (personalWs && activeWorkspaceId === personalWs.id);
-          const canEditWorkspace = !activeWs || activeWs.role === 'OWNER' || activeWs.role === 'ADMIN';
+          const canEditWorkspace = !activeWs || ['MANAGER', 'EDITOR'].includes(activeWs.role);
           const filteredSnippets = snippets.filter(s => s && (s.collectionId === activeWorkspaceId || (!s.collectionId && isPersonalActive)));
           
           return (
