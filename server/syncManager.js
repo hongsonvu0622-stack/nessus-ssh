@@ -258,7 +258,7 @@ class SyncManager {
           }
         }
       });
-      data.connections = Array.from(mergedMap.values());
+      mergedData.connections = Array.from(mergedMap.values());
 
       const mergedGroupsMap = new Map();
       finalGroups.forEach(c => mergedGroupsMap.set(c.id, c));
@@ -276,7 +276,7 @@ class SyncManager {
           }
         }
       });
-      data.groups = Array.from(mergedGroupsMap.values());
+      mergedData.groups = Array.from(mergedGroupsMap.values());
 
       const mergedSnippetsMap = new Map();
       finalSnippets.forEach(c => mergedSnippetsMap.set(c.id, c));
@@ -379,6 +379,8 @@ class SyncManager {
         this.socket.emit('sync:status', { message: `Sync complete! (No personal vault found to push).`, type: 'success' });
       }
       
+      this.socket.emit('sync:success');
+
       // Trigger UI reload
       this.socket.emit('data:update', data);
 
@@ -388,6 +390,7 @@ class SyncManager {
         message: err.response?.data?.error || err.message || 'Sync failed', 
         type: 'error' 
       });
+      this.socket.emit('sync:error');
     }
   }
 }

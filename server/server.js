@@ -276,6 +276,8 @@ io.on('connection', (socket) => {
   socket.on('sync:force', async (options = {}) => {
     if (syncManager.token) {
       await syncManager.performSync(options);
+    } else {
+      socket.emit('sync:error', { message: 'Not logged in' });
     }
   });
 
