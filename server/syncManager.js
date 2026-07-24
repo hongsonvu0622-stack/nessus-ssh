@@ -162,163 +162,60 @@ class SyncManager {
 
   async performSync() {
     try {
-      this.socket.emit('sync:status', { message: 'Pulling encrypted collections...', type: 'info' });
-      
-      // Pull Collections
-      const res = await axios.get(`${this.syncUrl}/sync/pull`, {
-        headers: { Authorization: `Bearer ${this.token}` }
-      });
+      this.socket.emit('sync:status', { message: 'Bắt đầu đồng bộ...', type: 'info' });
 
-      const collections = res.data;
-      let newConnections = [];
-      let newGroups = [];
-      let newSnippets = [];
-
-      for (const access of collections) {
-        // Decrypt the Collection Key using our RSA Private Key
-        const hexCollectionKey = cryptoUtil.decryptWithPrivateKey(access.encryptedKey, this.privateKey);
-        if (!hexCollectionKey) {
-          console.warn(`Could not decrypt key for collection ${access.collection.name}`);
-          continue;
-        }
-        
-        const collectionKeyBuffer = Buffer.from(hexCollectionKey, 'hex');
-
-        // Decrypt all resources in this collection
-        for (const resource of access.collection.resources) {
-          if (resource.type === 'CONNECTION') {
-            const decPayload = cryptoUtil.decryptWithSymmetricKey(resource.encPayload, collectionKeyBuffer);
-            if (decPayload && !decPayload.startsWith('ENC:v1:')) {
-              try {
-                const conn = JSON.parse(decPayload);
-                conn.collectionId = access.collection.id; // tag it
-                newConnections.push(conn);
-              } catch (e) {
-                console.error('Failed to parse decrypted resource', e);
-              }
-            }
-          } else if (resource.type === 'GROUP') {
-            const decPayload = cryptoUtil.decryptWithSymmetricKey(resource.encPayload, collectionKeyBuffer);
-            if (decPayload && !decPayload.startsWith('ENC:v1:')) {
-              try {
-                const grp = JSON.parse(decPayload);
-                grp.collectionId = access.collection.id;
-                newGroups.push(grp);
-              } catch (e) {}
-            }
-          } else if (resource.type === 'SNIPPET') {
-            const decPayload = cryptoUtil.decryptWithSymmetricKey(resource.encPayload, collectionKeyBuffer);
-            if (decPayload && !decPayload.startsWith('ENC:v1:')) {
-              try {
-                const snip = JSON.parse(decPayload);
-                snip.collectionId = access.collection.id;
-                newSnippets.push(snip);
-              } catch (e) {}
-            }
-          }
-        }
-      }
-
-      // Merge with local connections (Simple merge for MVP: overwrite local with same ID)
+      // 1. LOAD LOCAL DATA
       const data = dataStore.loadData();
       const localConns = data.connections || [];
       const localGroups = data.groups || [];
       const localSnippets = data.snippets || [];
       const deletedResourceIds = data.deletedResourceIds || [];
-      
-      const pulledCollectionIds = collections.map(a => a.collection.id);
 
-      // Filter logic: keep local if not in pulled collection, or if pulled from server.
-      // Also ignore any pulled item that is in the local deletedResourceIds blacklist.
-      let finalConns = localConns.filter(c => !c.collectionId || !pulledCollectionIds.includes(c.collectionId) || newConnections.some(nc => nc.id === c.id));
-      let finalGroups = localGroups.filter(g => !g.collectionId || !pulledCollectionIds.includes(g.collectionId) || newGroups.some(ng => ng.id === g.id));
-      let finalSnippets = localSnippets.filter(s => !s.collectionId || !pulledCollectionIds.includes(s.collectionId) || newSnippets.some(ns => ns.id === s.id));
-
-      const mergedMap = new Map();
-      finalConns.forEach(c => mergedMap.set(c.id, c));
-      newConnections.forEach(c => {
-        if (!deletedResourceIds.includes(c.id)) mergedMap.set(c.id, c);
+      // 2. FETCH COLLECTIONS METADATA
+      const res = await axios.get(`${this.syncUrl}/sync/pull`, {
+        headers: { Authorization: `Bearer ${this.token}` }
       });
-      data.connections = Array.from(mergedMap.values());
-
-      const mergedGroupsMap = new Map();
-      finalGroups.forEach(c => mergedGroupsMap.set(c.id, c));
-      newGroups.forEach(c => {
-        if (!deletedResourceIds.includes(c.id)) mergedGroupsMap.set(c.id, c);
-      });
-      data.groups = Array.from(mergedGroupsMap.values());
-
-      const mergedSnippetsMap = new Map();
-      finalSnippets.forEach(c => mergedSnippetsMap.set(c.id, c));
-      newSnippets.forEach(c => {
-        if (!deletedResourceIds.includes(c.id)) mergedSnippetsMap.set(c.id, c);
-      });
-      data.snippets = Array.from(mergedSnippetsMap.values());
-
-      dataStore.saveData(data);
-
-      this.socket.emit('sync:status', { message: `Sync Pull complete! Decrypted ${newConnections.length} remote resources. Pushing local updates...`, type: 'info' });
-
-      // Find the Personal Collection to push to
+      const collections = res.data;
       const personalAccess = collections.find(c => c.collection.type === 'PERSONAL');
+      
+      let pushCount = 0;
+
+      // 3. PUSH LOCAL CHANGES FIRST (LWW: Local wins over stale cloud)
       if (personalAccess) {
         const hexCollectionKey = cryptoUtil.decryptWithPrivateKey(personalAccess.encryptedKey, this.privateKey);
         const collectionKeyBuffer = Buffer.from(hexCollectionKey, 'hex');
-
-        let pushCount = 0;
+        
         const resourcesToPush = [];
-        for (const conn of data.connections) {
-          // Only push connections that belong to the personal collection or have no collectionId
+        for (const conn of localConns) {
           if (!conn.collectionId || conn.collectionId === personalAccess.collection.id) {
             const encPayload = cryptoUtil.encryptWithSymmetricKey(JSON.stringify(conn), collectionKeyBuffer);
-            resourcesToPush.push({
-              id: conn.id,
-              type: 'CONNECTION',
-              name: conn.name || 'Unknown Connection',
-              encPayload
-            });
+            resourcesToPush.push({ id: conn.id, type: 'CONNECTION', name: conn.name || 'Unknown Connection', encPayload });
           }
         }
-
-        for (const grp of data.groups || []) {
+        for (const grp of localGroups) {
           if (!grp.collectionId || grp.collectionId === personalAccess.collection.id) {
             const encPayload = cryptoUtil.encryptWithSymmetricKey(JSON.stringify(grp), collectionKeyBuffer);
-            resourcesToPush.push({
-              id: grp.id,
-              type: 'GROUP',
-              name: grp.name || 'Unknown Group',
-              encPayload
-            });
+            resourcesToPush.push({ id: grp.id, type: 'GROUP', name: grp.name || 'Unknown Group', encPayload });
           }
         }
-
-        for (const snip of data.snippets || []) {
+        for (const snip of localSnippets) {
           if (!snip.collectionId || snip.collectionId === personalAccess.collection.id) {
             const encPayload = cryptoUtil.encryptWithSymmetricKey(JSON.stringify(snip), collectionKeyBuffer);
-            resourcesToPush.push({
-              id: snip.id,
-              name: snip.title,
-              type: 'SNIPPET',
-              encPayload
-            });
+            resourcesToPush.push({ id: snip.id, type: 'SNIPPET', name: snip.title, encPayload });
             pushCount++;
           }
         }
 
-        const deletedIds = data.deletedResourceIds || [];
-
-        // Execute push
-        if (pushCount > 0 || deletedIds.length > 0) {
-          this.socket.emit('sync:status', { message: `Pushing ${pushCount} local updates and ${deletedIds.length} deletions to server...`, type: 'info' });
+        if (pushCount > 0 || deletedResourceIds.length > 0) {
+          this.socket.emit('sync:status', { message: `Đang đẩy ${pushCount} cập nhật và ${deletedResourceIds.length} xóa lên Cloud...`, type: 'info' });
           try {
             await axios.post(`${this.syncUrl}/sync/push`, {
               collectionId: personalAccess.collection.id,
               resources: resourcesToPush,
-              deletedIds: deletedIds
+              deletedIds: deletedResourceIds
             }, {
               headers: { Authorization: `Bearer ${this.token}` }
             });
-            
             // Clear deletedResourceIds after successful push
             data.deletedResourceIds = [];
             dataStore.saveData(data);
@@ -326,13 +223,64 @@ class SyncManager {
             console.error(`Failed to push resources:`, e.response?.data || e.message);
           }
         }
-
-        this.socket.emit('sync:status', { message: `Sync complete! Pushed ${pushCount} local resources.`, type: 'success' });
-      } else {
-        this.socket.emit('sync:status', { message: `Sync complete! (No personal vault found to push).`, type: 'success' });
       }
+
+      // 4. PULL & DECRYPT FROM CLOUD
+      // We re-fetch to get the newly pushed state + any other changes
+      const pullRes = await axios.get(`${this.syncUrl}/sync/pull`, {
+        headers: { Authorization: `Bearer ${this.token}` }
+      });
+      const updatedCollections = pullRes.data;
       
-      // Trigger UI reload
+      let newConnections = [];
+      let newGroups = [];
+      let newSnippets = [];
+
+      for (const access of updatedCollections) {
+        const hexCollectionKey = cryptoUtil.decryptWithPrivateKey(access.encryptedKey, this.privateKey);
+        if (!hexCollectionKey) continue;
+        const collectionKeyBuffer = Buffer.from(hexCollectionKey, 'hex');
+
+        for (const resource of access.collection.resources) {
+          try {
+            const decPayload = cryptoUtil.decryptWithSymmetricKey(resource.encPayload, collectionKeyBuffer);
+            if (decPayload && !decPayload.startsWith('ENC:v1:')) {
+              const obj = JSON.parse(decPayload);
+              obj.collectionId = access.collection.id;
+              if (resource.type === 'CONNECTION') newConnections.push(obj);
+              else if (resource.type === 'GROUP') newGroups.push(obj);
+              else if (resource.type === 'SNIPPET') newSnippets.push(obj);
+            }
+          } catch (e) {}
+        }
+      }
+
+      // 5. MERGE CLOUD INTO LOCAL
+      const pulledCollectionIds = updatedCollections.map(a => a.collection.id);
+      
+      // Keep local items if they belong to a collection we didn't pull OR if cloud returned them
+      let finalConns = localConns.filter(c => !c.collectionId || !pulledCollectionIds.includes(c.collectionId) || newConnections.some(nc => nc.id === c.id));
+      let finalGroups = localGroups.filter(g => !g.collectionId || !pulledCollectionIds.includes(g.collectionId) || newGroups.some(ng => ng.id === g.id));
+      let finalSnippets = localSnippets.filter(s => !s.collectionId || !pulledCollectionIds.includes(s.collectionId) || newSnippets.some(ns => ns.id === s.id));
+
+      const mergedMap = new Map();
+      finalConns.forEach(c => mergedMap.set(c.id, c));
+      newConnections.forEach(c => mergedMap.set(c.id, c)); // Cloud is now guaranteed to have our latest push
+      data.connections = Array.from(mergedMap.values());
+
+      const mergedGroupsMap = new Map();
+      finalGroups.forEach(c => mergedGroupsMap.set(c.id, c));
+      newGroups.forEach(c => mergedGroupsMap.set(c.id, c));
+      data.groups = Array.from(mergedGroupsMap.values());
+
+      const mergedSnippetsMap = new Map();
+      finalSnippets.forEach(c => mergedSnippetsMap.set(c.id, c));
+      newSnippets.forEach(c => mergedSnippetsMap.set(c.id, c));
+      data.snippets = Array.from(mergedSnippetsMap.values());
+
+      // 6. SAVE & NOTIFY
+      dataStore.saveData(data);
+      this.socket.emit('sync:status', { message: `Đồng bộ hoàn tất! (Tải về ${newConnections.length} máy chủ)`, type: 'success' });
       this.socket.emit('data:update', data);
 
     } catch (err) {

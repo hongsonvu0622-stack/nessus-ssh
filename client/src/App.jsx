@@ -173,6 +173,9 @@ export default function App() {
       deletedResourceIds: newDeletedIds !== undefined ? newDeletedIds : deletedResourceIds
     };
     await saveData(payload);
+    if (socket) {
+      socket.emit('sync:force');
+    }
   };
 
   // Connect & open terminal tab
