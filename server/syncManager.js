@@ -1,10 +1,11 @@
 const axios = require('axios');
 const cryptoUtil = require('./cryptoUtil');
 const dataStore = require('./dataStore');
-const keytar = require('keytar');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
 
-const KEYTAR_SERVICE = 'NexusSSH_Sync';
-const KEYTAR_ACCOUNT = 'default';
+const AUTH_FILE = path.join(os.homedir(), '.nexusssh', 'sync_auth.json');
 
 class SyncManager {
   constructor(socket) {
@@ -43,11 +44,13 @@ class SyncManager {
         throw new Error('Failed to decrypt private key. Incorrect sync password?');
       }
 
-      // Save to keychain for auto-login
+      // Save to encrypted file for auto-login
       try {
-        await keytar.setPassword(KEYTAR_SERVICE, KEYTAR_ACCOUNT, JSON.stringify({ email, password, syncUrl }));
+        const payload = JSON.stringify({ email, password, syncUrl });
+        const encPayload = cryptoUtil.encryptPassword(payload);
+        fs.writeFileSync(AUTH_FILE, encPayload, 'utf8');
       } catch (e) {
-        console.warn('Failed to save to keychain', e);
+        console.warn('Failed to save auth to disk', e);
       }
 
       this.socket.emit('sync:auth_success', { email });
@@ -124,17 +127,19 @@ class SyncManager {
 
   async checkAutoLogin() {
     try {
-      const creds = await keytar.getPassword(KEYTAR_SERVICE, KEYTAR_ACCOUNT);
-      if (creds) {
-        const { email, password, syncUrl } = JSON.parse(creds);
-        if (email && password && syncUrl) {
-          this.socket.emit('sync:status', { message: 'Auto-logging in...', type: 'info' });
-          await this.loginAndSync({ email, password, syncUrl });
-          return true;
-        }
+      if (!fs.existsSync(AUTH_FILE)) return false;
+      const encPayload = fs.readFileSync(AUTH_FILE, 'utf8');
+      const decPayload = cryptoUtil.decryptPassword(encPayload);
+      if (!decPayload || decPayload === encPayload) return false;
+
+      const authData = JSON.parse(decPayload);
+      if (authData && authData.email && authData.password) {
+        this.socket.emit('sync:status', { message: 'Auto-logging in...', type: 'info' });
+        await this.loginAndSync(authData);
+        return true;
       }
     } catch (e) {
-      console.warn('Failed to read from keychain', e);
+      console.warn('Failed to read from auth file', e);
     }
     return false;
   }
@@ -146,9 +151,11 @@ class SyncManager {
     this.privateKey = null;
     this.derivedKey = null;
     try {
-      await keytar.deletePassword(KEYTAR_SERVICE, KEYTAR_ACCOUNT);
+      if (fs.existsSync(AUTH_FILE)) {
+        fs.unlinkSync(AUTH_FILE);
+      }
     } catch (e) {
-      console.warn('Failed to delete keychain', e);
+      console.warn('Failed to delete auth file', e);
     }
     this.socket.emit('sync:logged_out');
   }
