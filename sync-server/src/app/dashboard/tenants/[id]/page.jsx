@@ -6,6 +6,74 @@ import { Server, Users, Key, Trash2, Edit2, ChevronDown, ChevronRight, User } fr
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 
+const ResourceTable = ({ resources, deleteResource }) => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const itemsPerPage = 50;
+
+  const filtered = resources.filter(r => r.name.toLowerCase().includes(search.toLowerCase()) || r.type.toLowerCase().includes(search.toLowerCase()));
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  return (
+    <div className="bg-white border border-gray-100 rounded-lg shadow-sm mt-3">
+       <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/80">
+          <input 
+            type="text" 
+            placeholder="Search resources..." 
+            value={search} 
+            onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+            className="px-3 py-1.5 border border-gray-200 rounded text-sm w-64 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+          />
+          <div className="text-sm text-gray-500">Total: {filtered.length} items</div>
+       </div>
+       <table className="w-full text-left">
+          <thead>
+            <tr className="border-b border-gray-100 bg-gray-50/50 text-xs uppercase text-gray-500">
+               <th className="p-3 font-medium">Type</th>
+               <th className="p-3 font-medium">Name</th>
+               <th className="p-3 font-medium">Updated</th>
+               <th className="p-3 font-medium text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="text-sm divide-y divide-gray-50">
+             {paginated.map(res => (
+                <tr key={res.id} className="hover:bg-gray-50/50 transition-colors">
+                  <td className="p-3">
+                    <span className="px-2.5 py-1 rounded-md bg-gray-100 text-xs font-mono text-gray-600">{res.type}</span>
+                  </td>
+                  <td className="p-3">
+                    <div className="font-medium text-gray-800">{res.name}</div>
+                    <div className="text-[10px] text-gray-400 font-mono mt-0.5">ID: {res.id}</div>
+                  </td>
+                  <td className="p-3 text-gray-500 text-xs whitespace-nowrap">
+                    {new Date(res.updatedAt).toLocaleDateString()}
+                  </td>
+                  <td className="p-3 text-right">
+                     <button onClick={(e) => { e.stopPropagation(); deleteResource(res.id); }} className="text-red-500 hover:text-red-700 p-1.5 bg-red-50 hover:bg-red-100 rounded transition-colors" title="Force Delete Resource">
+                       <Trash2 size={15} />
+                     </button>
+                  </td>
+                </tr>
+             ))}
+             {paginated.length === 0 && (
+                <tr>
+                  <td colSpan="4" className="p-8 text-center text-gray-500 text-sm">No resources found.</td>
+                </tr>
+             )}
+          </tbody>
+       </table>
+       {totalPages > 1 && (
+         <div className="p-4 border-t border-gray-100 flex justify-between items-center bg-gray-50/80">
+            <button disabled={currentPage === 1} onClick={() => setCurrentPage(prev => prev - 1)} className="px-3 py-1.5 bg-white border border-gray-200 rounded text-sm disabled:opacity-50 hover:bg-gray-50 transition-colors">Previous</button>
+            <span className="text-sm text-gray-500 font-medium">Page {currentPage} of {totalPages}</span>
+            <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(prev => prev + 1)} className="px-3 py-1.5 bg-white border border-gray-200 rounded text-sm disabled:opacity-50 hover:bg-gray-50 transition-colors">Next</button>
+         </div>
+       )}
+    </div>
+  );
+}
+
 export default function TenantDetailsPage() {
   const [tenant, setTenant] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -161,42 +229,11 @@ export default function TenantDetailsPage() {
                   {/* Expanded Resources */}
                   {expandedVaults[vault.id] && (
                     <div className="bg-gray-50 p-4 border-t border-gray-100">
-                      <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Resources in Vault</h4>
+                      <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Resources in Vault</h4>
                       {vault.resources.length === 0 ? (
-                        <p className="text-sm text-gray-400 italic">Vault is empty.</p>
+                        <p className="text-sm text-gray-400 italic mt-3">Vault is empty.</p>
                       ) : (
-                        <div className="space-y-6">
-                          {Object.entries(
-                            vault.resources.reduce((acc, res) => {
-                              (acc[res.type] = acc[res.type] || []).push(res);
-                              return acc;
-                            }, {})
-                          ).map(([type, typeResources]) => (
-                            <div key={type} className="space-y-2">
-                              <h5 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2 border-b border-gray-100 pb-1">
-                                {type} ({typeResources.length})
-                              </h5>
-                              {typeResources.map(res => (
-                                <div key={res.id} className="bg-white border border-gray-200 rounded-lg p-3 flex justify-between items-start shadow-sm hover:border-gray-300 transition-colors">
-                                  <div>
-                                    <h4 className="font-mono text-sm font-semibold text-gray-800">{res.name}</h4>
-                                    <p className="text-[10px] text-gray-400 font-mono mt-1">ID: {res.id}</p>
-                                  </div>
-                                  <div className="flex items-center gap-4">
-                                    <p className="text-xs text-gray-400 whitespace-nowrap">Updated: {new Date(res.updatedAt).toLocaleDateString()}</p>
-                                    <button 
-                                      onClick={(e) => { e.stopPropagation(); deleteResource(res.id); }}
-                                      className="text-red-500 hover:text-red-700 p-1 bg-red-50 hover:bg-red-100 rounded transition-colors"
-                                      title="Force Delete Resource"
-                                    >
-                                      <Trash2 size={14} />
-                                    </button>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          ))}
-                        </div>
+                        <ResourceTable resources={vault.resources} deleteResource={deleteResource} />
                       )}
                     </div>
                   )}
