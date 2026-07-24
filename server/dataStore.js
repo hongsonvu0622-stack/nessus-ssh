@@ -58,6 +58,7 @@ const DEFAULT_DATA = {
     }
   ],
   identities: [],
+  deletedResourceIds: [],
   settings: {
     theme: 'nexus-cyber-dark',
     fontSize: 14,

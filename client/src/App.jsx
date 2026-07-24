@@ -20,6 +20,7 @@ export default function App() {
   const [groups, setGroups] = useState([]);
   const [snippets, setSnippets] = useState([]);
   const [settings, setSettings] = useState({});
+  const [deletedResourceIds, setDeletedResourceIds] = useState([]);
 
   // Terminal Multi-Tabs
   const [tabs, setTabs] = useState([]);
@@ -45,10 +46,38 @@ export default function App() {
     try {
       const res = await fetchData();
       if (res) {
-        setConnections(res.connections || []);
-        setGroups(res.groups || []);
-        setSnippets(res.snippets || []);
+        let loadedConns = res.connections || [];
+        let loadedGroups = res.groups || [];
+        let loadedSnippets = res.snippets || [];
+        let loadedDeletedIds = res.deletedResourceIds || [];
+        
+        // 30-day Auto-Clear Trash
+        const now = Date.now();
+        const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+        
+        const filterTrash = (item) => {
+          if (!item.deletedAt) return true;
+          if (now - item.deletedAt > THIRTY_DAYS) {
+            loadedDeletedIds.push(item.id);
+            return false; // Hard delete
+          }
+          return true; // Keep in trash
+        };
+
+        loadedConns = loadedConns.filter(filterTrash);
+        loadedGroups = loadedGroups.filter(filterTrash);
+        loadedSnippets = loadedSnippets.filter(filterTrash);
+
+        setConnections(loadedConns);
+        setGroups(loadedGroups);
+        setSnippets(loadedSnippets);
+        setDeletedResourceIds(loadedDeletedIds);
         setSettings(res.settings || {});
+        
+        // Auto-save if anything was hard-deleted by auto-clear
+        if (loadedDeletedIds.length > (res.deletedResourceIds?.length || 0)) {
+          persistData(loadedConns, loadedGroups, loadedSnippets, res.settings, loadedDeletedIds);
+        }
       }
     } catch (e) {
       console.error('Failed to load data:', e);
@@ -107,12 +136,13 @@ export default function App() {
     };
   }, []);
 
-  const persistData = async (newConnections, newGroups, newSnippets, newSettings) => {
+  const persistData = async (newConnections, newGroups, newSnippets, newSettings, newDeletedIds) => {
     const payload = {
       connections: newConnections !== undefined ? newConnections : connections,
       groups: newGroups !== undefined ? newGroups : groups,
       snippets: newSnippets !== undefined ? newSnippets : snippets,
-      settings: newSettings !== undefined ? newSettings : settings
+      settings: newSettings !== undefined ? newSettings : settings,
+      deletedResourceIds: newDeletedIds !== undefined ? newDeletedIds : deletedResourceIds
     };
     await saveData(payload);
   };
@@ -177,10 +207,31 @@ export default function App() {
   };
 
   const handleDeleteConnection = async (id) => {
-    if (!window.confirm('Bạn có chắc muốn xóa kết nối này?')) return;
-    const updated = connections.filter(c => c.id !== id);
+    if (!window.confirm('Đưa máy chủ này vào Thùng rác?')) return;
+    const updated = connections.map(c => c.id === id ? { ...c, deletedAt: Date.now() } : c);
     setConnections(updated);
     await persistData(updated);
+  };
+
+  const handleRestoreConnection = async (id) => {
+    const updated = connections.map(c => {
+      if (c.id === id) {
+        const { deletedAt, ...rest } = c;
+        return rest;
+      }
+      return c;
+    });
+    setConnections(updated);
+    await persistData(updated);
+  };
+
+  const handleHardDeleteConnection = async (id) => {
+    if (!window.confirm('Máy chủ này sẽ bị xóa vĩnh viễn và không thể khôi phục. Tiếp tục?')) return;
+    const updated = connections.filter(c => c.id !== id);
+    const newDeletedIds = [...deletedResourceIds, id];
+    setConnections(updated);
+    setDeletedResourceIds(newDeletedIds);
+    await persistData(updated, undefined, undefined, undefined, newDeletedIds);
   };
 
   // Import ~/.ssh/config
@@ -208,7 +259,7 @@ export default function App() {
   };
 
   const handleDeleteSnippet = async (id) => {
-    const updated = snippets.filter(s => s.id !== id);
+    const updated = snippets.map(s => s.id === id ? { ...s, deletedAt: Date.now() } : s);
     setSnippets(updated);
     await persistData(undefined, undefined, updated);
   };
@@ -337,12 +388,52 @@ export default function App() {
               await persistData(updatedConns, updatedGroups);
             }}
             onDeleteGroup={async (groupName) => {
-              const updatedGroups = groups.filter(g => g.name !== groupName);
-              const updatedConns = connections.filter(c => (c.group || 'Default') !== groupName);
+              const updatedGroups = groups.map(g => g.name === groupName ? { ...g, deletedAt: Date.now() } : g);
+              const updatedConns = connections.map(c => (c.group || 'Default') === groupName ? { ...c, deletedAt: Date.now() } : c);
               setGroups(updatedGroups);
               setConnections(updatedConns);
               await persistData(updatedConns, updatedGroups);
             }}
+            onRestoreGroup={async (groupName) => {
+              const updatedGroups = groups.map(g => {
+                if (g.name === groupName) {
+                  const { deletedAt, ...rest } = g;
+                  return rest;
+                }
+                return g;
+              });
+              const updatedConns = connections.map(c => {
+                if ((c.group || 'Default') === groupName) {
+                  const { deletedAt, ...rest } = c;
+                  return rest;
+                }
+                return c;
+              });
+              setGroups(updatedGroups);
+              setConnections(updatedConns);
+              await persistData(updatedConns, updatedGroups);
+            }}
+            onHardDeleteGroup={async (groupName) => {
+              if (!window.confirm(`Thư mục "${groupName}" và toàn bộ máy chủ bên trong sẽ bị xóa vĩnh viễn. Tiếp tục?`)) return;
+              
+              const groupObj = groups.find(g => g.name === groupName);
+              const connsToDrop = connections.filter(c => (c.group || 'Default') === groupName);
+              
+              const updatedGroups = groups.filter(g => g.name !== groupName);
+              const updatedConns = connections.filter(c => (c.group || 'Default') !== groupName);
+              
+              const idsToRemove = connsToDrop.map(c => c.id);
+              if (groupObj && groupObj.id) idsToRemove.push(groupObj.id);
+              
+              const newDeletedIds = [...deletedResourceIds, ...idsToRemove];
+              
+              setGroups(updatedGroups);
+              setConnections(updatedConns);
+              setDeletedResourceIds(newDeletedIds);
+              await persistData(updatedConns, updatedGroups, undefined, undefined, newDeletedIds);
+            }}
+            onRestoreConnection={handleRestoreConnection}
+            onHardDeleteConnection={handleHardDeleteConnection}
           />
         )}
 

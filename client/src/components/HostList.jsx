@@ -41,6 +41,10 @@ export default function HostList({
   onCreateGroup,
   onRenameGroup,
   onDeleteGroup,
+  onRestoreGroup,
+  onHardDeleteGroup,
+  onRestoreConnection,
+  onHardDeleteConnection,
   onRdpConnect
 }) {
   const { t, lang } = useI18n();
@@ -70,6 +74,11 @@ export default function HostList({
   };
 
   const filtered = connections.filter(conn => {
+    if (viewMode === 'trash') {
+      return !!conn.deletedAt;
+    }
+    if (conn.deletedAt) return false;
+
     const matchesSearch = 
       conn.name?.toLowerCase().includes(search.toLowerCase()) ||
       conn.host?.toLowerCase().includes(search.toLowerCase()) ||
@@ -85,11 +94,11 @@ export default function HostList({
     return matchesSearch && matchesProtocol && matchesGroup;
   });
 
-  // Unique Group Names
+  // Unique Group Names (excluding soft-deleted groups unless in trash mode)
   const groupNames = Array.from(new Set([
     'Production',
-    ...groups.map(g => g.name),
-    ...connections.map(c => c.group || 'Production')
+    ...groups.filter(g => viewMode === 'trash' ? g.deletedAt : !g.deletedAt).map(g => g.name),
+    ...connections.filter(c => viewMode === 'trash' ? c.deletedAt : !c.deletedAt).map(c => c.group || 'Production')
   ])).filter(Boolean);
 
   // Submit Create Group
@@ -375,21 +384,44 @@ export default function HostList({
         </div>
 
         <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
-          <button
-            onClick={() => onOpenModal(conn)}
-            className="btn-icon"
-            title="Chỉnh sửa kết nối"
-          >
-            <Edit3 size={15} />
-          </button>
-          <button
-            onClick={() => onDeleteConnection(conn.id)}
-            className="btn-icon"
-            title="Xóa kết nối"
-            style={{ color: 'var(--danger)' }}
-          >
-            <Trash2 size={15} />
-          </button>
+          {viewMode === 'trash' ? (
+            <>
+              <button
+                onClick={() => onRestoreConnection(conn.id)}
+                className="btn-icon"
+                title="Khôi phục máy chủ"
+                style={{ color: '#10b981' }}
+              >
+                <FolderGit2 size={15} />
+              </button>
+              <button
+                onClick={() => onHardDeleteConnection(conn.id)}
+                className="btn-icon"
+                title="Xóa vĩnh viễn"
+                style={{ color: 'var(--danger)' }}
+              >
+                <Trash2 size={15} />
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => onOpenModal(conn)}
+                className="btn-icon"
+                title="Chỉnh sửa kết nối"
+              >
+                <Edit3 size={15} />
+              </button>
+              <button
+                onClick={() => onDeleteConnection(conn.id)}
+                className="btn-icon"
+                title="Xóa kết nối"
+                style={{ color: 'var(--danger)' }}
+              >
+                <Trash2 size={15} />
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -414,7 +446,12 @@ export default function HostList({
       )}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-        {conn.protocol === 'rdp' ? (
+        {viewMode === 'trash' ? (
+          <div style={{ flex: 1, fontSize: '12px', color: 'var(--danger)', textAlign: 'center', padding: '8px', background: 'rgba(244, 63, 94, 0.1)', borderRadius: '6px' }}>
+            <AlertTriangle size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
+            Đã chuyển vào Thùng rác
+          </div>
+        ) : conn.protocol === 'rdp' ? (
           <button
             onClick={() => onRdpConnect && onRdpConnect(conn)}
             className="btn-primary"
@@ -522,6 +559,26 @@ export default function HostList({
                 }}
               >
                 <LayoutGrid size={14} /> {t('hostList.allHostsGrid')}
+              </button>
+              <button
+                onClick={() => setViewMode('trash')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 11px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  border: 'none',
+                  cursor: 'pointer',
+                  background: viewMode === 'trash' ? 'var(--danger)' : 'transparent',
+                  color: viewMode === 'trash' ? '#fff' : 'var(--danger)',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0
+                }}
+              >
+                <Trash2 size={14} /> Thùng rác
               </button>
             </div>
 
@@ -793,13 +850,15 @@ export default function HostList({
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }} onClick={e => e.stopPropagation()}>
-                      <button
-                        onClick={() => onOpenModal({ group: gName, protocol: 'ssh' })}
-                        className="btn-secondary"
-                        style={{ fontSize: '12px', padding: '5px 12px' }}
-                      >
-                        <Plus size={13} /> {t('hostList.addHostBtn')}
-                      </button>
+                      {viewMode !== 'trash' && (
+                        <button
+                          onClick={() => onOpenModal({ group: gName, protocol: 'ssh' })}
+                          className="btn-secondary"
+                          style={{ fontSize: '12px', padding: '5px 12px' }}
+                        >
+                          <Plus size={13} /> {t('hostList.addHostBtn')}
+                        </button>
+                      )}
 
                       {/* 3-DOT MENU BUTTON */}
                       <button
@@ -832,52 +891,71 @@ export default function HostList({
                           width: '185px',
                           boxShadow: '0 10px 30px rgba(0,0,0,0.8)'
                         }}>
-                          <button
-                            onClick={() => {
-                              setActiveFolderMenu(null);
-                              setRenameModal({ oldName: gName, newName: gName });
-                            }}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '10px',
-                              width: '100%',
-                              padding: '8px 10px',
-                              background: 'transparent',
-                              border: 'none',
-                              color: '#fff',
-                              fontSize: '13px',
-                              textAlign: 'left',
-                              cursor: 'pointer',
-                              borderRadius: '6px'
-                            }}
-                          >
-                            <Edit3 size={15} color="#38bdf8" /> Đổi tên thư mục
-                          </button>
+                          {viewMode === 'trash' ? (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setActiveFolderMenu(null);
+                                  onRestoreGroup(gName);
+                                }}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+                                  padding: '8px 10px', background: 'transparent', border: 'none',
+                                  color: '#10b981', fontSize: '13px', textAlign: 'left',
+                                  cursor: 'pointer', borderRadius: '6px'
+                                }}
+                              >
+                                <FolderGit2 size={15} /> Khôi phục thư mục
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setActiveFolderMenu(null);
+                                  onHardDeleteGroup(gName);
+                                }}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+                                  padding: '8px 10px', background: 'transparent', border: 'none',
+                                  color: 'var(--danger)', fontSize: '13px', textAlign: 'left',
+                                  cursor: 'pointer', borderRadius: '6px'
+                                }}
+                              >
+                                <Trash2 size={15} /> Xóa vĩnh viễn
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setActiveFolderMenu(null);
+                                  setRenameModal({ oldName: gName, newName: gName });
+                                }}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+                                  padding: '8px 10px', background: 'transparent', border: 'none',
+                                  color: '#fff', fontSize: '13px', textAlign: 'left',
+                                  cursor: 'pointer', borderRadius: '6px'
+                                }}
+                              >
+                                <Edit3 size={15} color="#38bdf8" /> Đổi tên thư mục
+                              </button>
 
-                          {gName !== 'Production' && (
-                            <button
-                              onClick={() => {
-                                setActiveFolderMenu(null);
-                                setDeleteModal({ groupName: gName, count: groupHosts.length });
-                              }}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '10px',
-                                width: '100%',
-                                padding: '8px 10px',
-                                background: 'transparent',
-                                border: 'none',
-                                color: 'var(--danger)',
-                                fontSize: '13px',
-                                textAlign: 'left',
-                                cursor: 'pointer',
-                                borderRadius: '6px'
-                              }}
-                            >
-                              <Trash2 size={15} /> Xóa thư mục
-                            </button>
+                              {gName !== 'Production' && (
+                                <button
+                                  onClick={() => {
+                                    setActiveFolderMenu(null);
+                                    setDeleteModal({ groupName: gName, count: groupHosts.length });
+                                  }}
+                                  style={{
+                                    display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+                                    padding: '8px 10px', background: 'transparent', border: 'none',
+                                    color: 'var(--danger)', fontSize: '13px', textAlign: 'left',
+                                    cursor: 'pointer', borderRadius: '6px'
+                                  }}
+                                >
+                                  <Trash2 size={15} /> Xóa thư mục
+                                </button>
+                              )}
+                            </>
                           )}
                         </div>
                       )}

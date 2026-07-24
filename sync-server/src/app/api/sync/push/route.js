@@ -11,7 +11,7 @@ export async function POST(request) {
     jwt.verify(token, process.env.JWT_SECRET || 'supersecretjwtkey-nexusssh');
 
     const body = await request.json();
-    const { collectionId, resources } = body;
+    const { collectionId, resources, deletedIds } = body;
 
     if (!collectionId || !resources || !Array.isArray(resources)) {
       return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
@@ -41,7 +41,19 @@ export async function POST(request) {
       results.push(record.id);
     }
 
-    return NextResponse.json({ success: true, pushed: results.length });
+    // Process deletedIds (Tombstones)
+    let deletedCount = 0;
+    if (deletedIds && Array.isArray(deletedIds) && deletedIds.length > 0) {
+      const deleteResult = await prisma.resource.deleteMany({
+        where: {
+          id: { in: deletedIds },
+          collectionId
+        }
+      });
+      deletedCount = deleteResult.count;
+    }
+
+    return NextResponse.json({ success: true, pushed: results.length, deleted: deletedCount });
   } catch (error) {
     console.error('Push error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

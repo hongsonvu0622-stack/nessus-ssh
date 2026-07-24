@@ -224,20 +224,35 @@ class SyncManager {
       const localConns = data.connections || [];
       const localGroups = data.groups || [];
       const localSnippets = data.snippets || [];
+      const deletedResourceIds = data.deletedResourceIds || [];
       
+      const pulledCollectionIds = collections.map(a => a.collection.id);
+
+      // Filter logic: keep local if not in pulled collection, or if pulled from server.
+      // Also ignore any pulled item that is in the local deletedResourceIds blacklist.
+      let finalConns = localConns.filter(c => !c.collectionId || !pulledCollectionIds.includes(c.collectionId) || newConnections.some(nc => nc.id === c.id));
+      let finalGroups = localGroups.filter(g => !g.collectionId || !pulledCollectionIds.includes(g.collectionId) || newGroups.some(ng => ng.id === g.id));
+      let finalSnippets = localSnippets.filter(s => !s.collectionId || !pulledCollectionIds.includes(s.collectionId) || newSnippets.some(ns => ns.id === s.id));
+
       const mergedMap = new Map();
-      localConns.forEach(c => mergedMap.set(c.id, c));
-      newConnections.forEach(c => mergedMap.set(c.id, c));
+      finalConns.forEach(c => mergedMap.set(c.id, c));
+      newConnections.forEach(c => {
+        if (!deletedResourceIds.includes(c.id)) mergedMap.set(c.id, c);
+      });
       data.connections = Array.from(mergedMap.values());
 
       const mergedGroupsMap = new Map();
-      localGroups.forEach(c => mergedGroupsMap.set(c.id, c));
-      newGroups.forEach(c => mergedGroupsMap.set(c.id, c));
+      finalGroups.forEach(c => mergedGroupsMap.set(c.id, c));
+      newGroups.forEach(c => {
+        if (!deletedResourceIds.includes(c.id)) mergedGroupsMap.set(c.id, c);
+      });
       data.groups = Array.from(mergedGroupsMap.values());
 
       const mergedSnippetsMap = new Map();
-      localSnippets.forEach(c => mergedSnippetsMap.set(c.id, c));
-      newSnippets.forEach(c => mergedSnippetsMap.set(c.id, c));
+      finalSnippets.forEach(c => mergedSnippetsMap.set(c.id, c));
+      newSnippets.forEach(c => {
+        if (!deletedResourceIds.includes(c.id)) mergedSnippetsMap.set(c.id, c);
+      });
       data.snippets = Array.from(mergedSnippetsMap.values());
 
       dataStore.saveData(data);
@@ -282,24 +297,36 @@ class SyncManager {
             const encPayload = cryptoUtil.encryptWithSymmetricKey(JSON.stringify(snip), collectionKeyBuffer);
             resourcesToPush.push({
               id: snip.id,
+              name: snip.title,
               type: 'SNIPPET',
-              name: snip.title || 'Unknown Snippet',
               encPayload
             });
+            pushCount++;
           }
         }
-        
-        if (resourcesToPush.length > 0) {
+
+        const deletedIds = data.deletedResourceIds || [];
+
+        // Execute push
+        if (pushCount > 0 || deletedIds.length > 0) {
+          this.socket.emit('sync:status', { message: `Pushing ${pushCount} local updates and ${deletedIds.length} deletions to server...`, type: 'info' });
           try {
             await axios.post(`${this.syncUrl}/sync/push`, {
               collectionId: personalAccess.collection.id,
-              resources: resourcesToPush
-            }, { headers: { Authorization: `Bearer ${this.token}` } });
-            pushCount = resourcesToPush.length;
+              resources: resourcesToPush,
+              deletedIds: deletedIds
+            }, {
+              headers: { Authorization: `Bearer ${this.token}` }
+            });
+            
+            // Clear deletedResourceIds after successful push
+            data.deletedResourceIds = [];
+            dataStore.saveData(data);
           } catch (e) {
             console.error(`Failed to push resources:`, e.response?.data || e.message);
           }
         }
+
         this.socket.emit('sync:status', { message: `Sync complete! Pushed ${pushCount} local resources.`, type: 'success' });
       } else {
         this.socket.emit('sync:status', { message: `Sync complete! (No personal vault found to push).`, type: 'success' });
