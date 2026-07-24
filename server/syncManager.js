@@ -156,8 +156,25 @@ class SyncManager {
       if (fs.existsSync(AUTH_FILE)) {
         fs.unlinkSync(AUTH_FILE);
       }
+      
+      // Xoá sạch dữ liệu cục bộ khi logout để tránh rò rỉ dữ liệu và chống ID collision
+      dataStore.saveData({
+        connections: [],
+        groups: [],
+        snippets: [],
+        deletedResourceIds: []
+      });
+
+      // Gửi event để client (App.jsx) reset giao diện
+      this.socket.emit('data:update', {
+        connections: [],
+        groups: [],
+        snippets: [],
+        deletedResourceIds: []
+      });
+
     } catch (e) {
-      console.warn('Failed to delete auth file', e);
+      console.warn('Failed to delete auth file or clear local data', e);
     }
     this.socket.emit('sync:logged_out');
   }

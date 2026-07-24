@@ -21,6 +21,16 @@ export async function POST(request) {
     const results = [];
     for (const res of resources) {
       if (!res.id || !res.type || !res.encPayload) continue;
+      // Security Check: Prevent stealing resources from other tenants (ID Collision)
+      const existing = await prisma.resource.findUnique({
+        where: { id: res.id },
+        select: { collectionId: true }
+      });
+
+      if (existing && existing.collectionId !== collectionId) {
+        console.warn(`[Sync Warning] Resource ${res.id} already belongs to another collection. Skipping to prevent data stealing.`);
+        continue;
+      }
       
       const record = await prisma.resource.upsert({
         where: { id: res.id },
