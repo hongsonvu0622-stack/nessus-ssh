@@ -61,11 +61,78 @@ function decryptPassword(cipherText) {
     return decrypted;
   } catch (err) {
     console.error('Error decrypting password:', err);
-    return '';
+    return cipherText;
+  }
+}
+
+// =====================================
+// Cloud Sync E2EE Cryptography Utils
+// =====================================
+
+function generateRSAKeyPair() {
+  const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
+    modulusLength: 2048,
+    publicKeyEncoding: { type: 'spki', format: 'pem' },
+    privateKeyEncoding: { type: 'pkcs8', format: 'pem' }
+  });
+  return { publicKey, privateKey };
+}
+
+function deriveKeyFromPassword(password, salt = 'nexus-sync-salt') {
+  return crypto.pbkdf2Sync(password, salt, 100000, 32, 'sha256');
+}
+
+function encryptWithSymmetricKey(plainText, keyBuffer) {
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', keyBuffer, iv);
+  let encrypted = cipher.update(plainText, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  const authTag = cipher.getAuthTag().toString('hex');
+  return `ENC:v1:${iv.toString('hex')}:${authTag}:${encrypted}`;
+}
+
+function decryptWithSymmetricKey(cipherText, keyBuffer) {
+  if (!cipherText || !cipherText.startsWith('ENC:v1:')) return cipherText;
+  try {
+    const parts = cipherText.split(':');
+    const iv = Buffer.from(parts[2], 'hex');
+    const authTag = Buffer.from(parts[3], 'hex');
+    const encryptedHex = parts[4];
+    const decipher = crypto.createDecipheriv('aes-256-gcm', keyBuffer, iv);
+    decipher.setAuthTag(authTag);
+    let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+  } catch (err) {
+    console.error('Error decrypting symmetric payload:', err);
+    return cipherText;
+  }
+}
+
+function encryptWithPublicKey(plainText, publicKeyPem) {
+  const buffer = Buffer.from(plainText, 'utf8');
+  const encrypted = crypto.publicEncrypt(publicKeyPem, buffer);
+  return encrypted.toString('base64');
+}
+
+function decryptWithPrivateKey(cipherTextBase64, privateKeyPem) {
+  try {
+    const buffer = Buffer.from(cipherTextBase64, 'base64');
+    const decrypted = crypto.privateDecrypt(privateKeyPem, buffer);
+    return decrypted.toString('utf8');
+  } catch (err) {
+    console.error('Error decrypting with private key:', err);
+    return null;
   }
 }
 
 module.exports = {
   encryptPassword,
-  decryptPassword
+  decryptPassword,
+  generateRSAKeyPair,
+  deriveKeyFromPassword,
+  encryptWithSymmetricKey,
+  decryptWithSymmetricKey,
+  encryptWithPublicKey,
+  decryptWithPrivateKey
 };

@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Tenant {
+  id          String   @id @default(uuid())
+  name        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       TenantUser[]
+  collections Collection[]
+}
+
+model User {
+  id             String   @id @default(uuid())
+  email          String   @unique
+  passwordHash   String   // Hash of Login Password
+  publicKey      String   // RSA Public Key
+  encPrivateKey  String   // RSA Private Key encrypted with Master Password
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenants        TenantUser[]
+  collectionKeys CollectionUser[]
+}
+
+model TenantUser {
+  id        String   @id @default(uuid())
+  tenantId  String
+  userId    String
+  role      String   // "OWNER", "ADMIN", "MEMBER"
+  createdAt DateTime @default(now())
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+}
+
+model Collection {
+  id          String   @id @default(uuid())
+  tenantId    String
+  name        String
+  type        String   @default("SHARED") // "PERSONAL", "SHARED"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users       CollectionUser[]
+  resources   Resource[]
+}
+
+model CollectionUser {
+  id               String   @id @default(uuid())
+  collectionId     String
+  userId           String
+  role             String   // "MANAGER", "EDITOR", "VIEWER"
+  encryptedKey     String   // The Collection's AES key, encrypted using the User's RSA Public Key
+  createdAt        DateTime @default(now())
+
+  collection       Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, userId])
+}
+
+model Resource {
+  id             String   @id @default(uuid())
+  collectionId   String
+  type           String   // "CONNECTION", "SNIPPET", "SSH_KEY"
+  encPayload     String   // The resource JSON, encrypted using the Collection's AES key
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  collection     Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+}

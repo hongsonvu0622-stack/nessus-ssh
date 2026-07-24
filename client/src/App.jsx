@@ -8,6 +8,7 @@ import SnippetDrawer from './components/SnippetDrawer';
 import IdentityManager from './components/IdentityManager';
 import SerialScannerModal from './components/SerialScannerModal';
 import UpdateModal from './components/UpdateModal';
+import CloudSync from './components/CloudSync';
 import { useI18n } from './i18n/I18nContext.jsx';
 import { fetchData, saveData, fetchImportConfig, socket } from './services/socket';
 import { Sparkles, RefreshCw, CheckCircle2, AlertCircle, Download } from 'lucide-react';
@@ -529,6 +530,9 @@ export default function App() {
                 </label>
               </div>
             </div>
+            
+            {/* Cloud Sync Integration Card */}
+            <CloudSync settings={settings} setSettings={setSettings} persistData={persistData} />
           </div>
         )}
       </main>
