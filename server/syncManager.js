@@ -160,16 +160,22 @@ class SyncManager {
     this.socket.emit('sync:logged_out');
   }
 
-  async performSync(skipPush = false) {
+  async performSync(options = {}) {
+    const skipPush = options.skipPush === true;
+    const skipPull = options.skipPull === true;
     try {
-      this.socket.emit('sync:status', { message: 'Bắt đầu đồng bộ...', type: 'info' });
+      this.socket.emit('sync:status', { message: skipPull ? 'Đang cập nhật lên Cloud...' : 'Bắt đầu đồng bộ...', type: 'info' });
       
-      // Pull Collections
+      let data = dataStore.loadData();
+
+      if (!skipPull || !this.collections) {
+        // Pull Collections
       const res = await axios.get(`${this.syncUrl}/sync/pull`, {
         headers: { Authorization: `Bearer ${this.token}` }
       });
 
-      const collections = res.data;
+        this.collections = res.data;
+        const collections = res.data;
       let newConnections = [];
       let newGroups = [];
       let newSnippets = [];
@@ -288,12 +294,15 @@ class SyncManager {
       });
       data.snippets = Array.from(mergedSnippetsMap.values());
 
-      dataStore.saveData(data);
+        dataStore.saveData(data);
 
-      this.socket.emit('sync:status', { message: `Sync Pull complete! Decrypted ${newConnections.length} remote resources. Pushing local updates...`, type: 'info' });
+        this.socket.emit('sync:status', { message: `Sync Pull complete! Decrypted ${newConnections.length} remote resources. Pushing local updates...`, type: 'info' });
+      }
+
+      if (!this.collections) return;
 
       // Find the Personal Collection to push to
-      const personalAccess = collections.find(c => c.collection.type === 'PERSONAL');
+      const personalAccess = this.collections.find(c => c.collection.type === 'PERSONAL');
       // 3. PUSH LOCAL CHANGES FIRST (LWW: Local wins over stale cloud)
       if (!skipPush && personalAccess) {
         const hexCollectionKey = cryptoUtil.decryptWithPrivateKey(personalAccess.encryptedKey, this.privateKey);

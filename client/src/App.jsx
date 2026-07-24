@@ -174,7 +174,7 @@ export default function App() {
     };
     await saveData(payload);
     if (socket) {
-      socket.emit('sync:force');
+      socket.emit('sync:force', { skipPull: true });
     }
   };
 

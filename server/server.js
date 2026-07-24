@@ -273,9 +273,9 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('sync:force', async () => {
+  socket.on('sync:force', async (options = {}) => {
     if (syncManager.token) {
-      await syncManager.performSync();
+      await syncManager.performSync(options);
     }
   });
 
