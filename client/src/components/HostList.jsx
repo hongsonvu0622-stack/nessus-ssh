@@ -49,7 +49,9 @@ export default function HostList({
   onHardDeleteConnection,
   onRdpConnect,
   onQuickSync,
-  isSyncing
+  isSyncing,
+  settings,
+  isLoggedIn
 }) {
   const { t, lang } = useI18n();
   const [search, setSearch] = useState('');
@@ -59,8 +61,7 @@ export default function HostList({
   // View mode: 'folder' or 'grid'
   const [viewMode, setViewMode] = useState('folder');
   const [collapsedFolders, setCollapsedFolders] = useState({});
-  const [showExportMenu, setShowExportMenu] = useState(false);
-  const [showImportMenu, setShowImportMenu] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [activeFolderMenu, setActiveFolderMenu] = useState(null);
   const fileInputRef = useRef(null);
 
@@ -595,15 +596,15 @@ export default function HostList({
 
             <div style={{ position: 'relative', flexShrink: 0 }}>
               <button
-                onClick={() => setShowImportMenu(!showImportMenu)}
+                onClick={() => setShowMoreMenu(!showMoreMenu)}
                 className="btn-secondary"
-                style={{ fontSize: '12.5px', padding: '7px 11px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', flexShrink: 0 }}
+                style={{ fontSize: '13px', padding: '7px 11px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                title="Thêm Công cụ"
               >
-                <Upload size={14} color="#10b981" />
-                <span>Import</span>
+                <MoreVertical size={16} color="var(--text-secondary)" />
               </button>
 
-              {showImportMenu && (
+              {showMoreMenu && (
                 <div style={{
                   position: 'absolute',
                   right: 0,
@@ -617,109 +618,64 @@ export default function HostList({
                   width: '230px',
                   boxShadow: '0 10px 30px rgba(0,0,0,0.8)'
                 }}>
+                  {/* Serial */}
+                  <button
+                    onClick={() => { setShowMoreMenu(false); onScanSerial(); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+                      padding: '9px 12px', background: 'transparent', border: 'none', color: '#a78bfa',
+                      fontSize: '12.5px', textAlign: 'left', cursor: 'pointer', borderRadius: '6px'
+                    }}
+                  >
+                    <Usb size={15} color="#a78bfa" /> {t('hostList.scanSerial')}
+                  </button>
+
+                  <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '4px 0' }} />
+
+                  {/* Import */}
                   <button
                     onClick={() => {
-                      setShowImportMenu(false);
+                      setShowMoreMenu(false);
                       fileInputRef.current?.click();
                     }}
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      width: '100%',
-                      padding: '9px 12px',
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#fff',
-                      fontSize: '12.5px',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      borderRadius: '6px'
+                      display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+                      padding: '9px 12px', background: 'transparent', border: 'none', color: '#fff',
+                      fontSize: '12.5px', textAlign: 'left', cursor: 'pointer', borderRadius: '6px'
                     }}
                   >
                     <Upload size={15} color="#10b981" /> Tải lên File (.xlsx / .json)
                   </button>
                   <button
-                    onClick={handleDownloadTemplate}
+                    onClick={() => { setShowMoreMenu(false); handleDownloadTemplate(); }}
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      width: '100%',
-                      padding: '9px 12px',
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#fff',
-                      fontSize: '12.5px',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      borderRadius: '6px'
+                      display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+                      padding: '9px 12px', background: 'transparent', border: 'none', color: '#fff',
+                      fontSize: '12.5px', textAlign: 'left', cursor: 'pointer', borderRadius: '6px'
                     }}
                   >
                     <FileSpreadsheet size={15} color="#fbbf24" /> Tải File Mẫu (.xlsx)
                   </button>
-                </div>
-              )}
-            </div>
 
-            <div style={{ position: 'relative', flexShrink: 0 }}>
-              <button
-                onClick={() => setShowExportMenu(!showExportMenu)}
-                className="btn-secondary"
-                style={{ fontSize: '12.5px', padding: '7px 11px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', flexShrink: 0 }}
-              >
-                <Download size={14} color="#38bdf8" />
-                <span>Export</span>
-              </button>
+                  <div style={{ height: '1px', background: 'rgba(255,255,255,0.1)', margin: '4px 0' }} />
 
-              {showExportMenu && (
-                <div style={{
-                  position: 'absolute',
-                  right: 0,
-                  top: '100%',
-                  marginTop: '6px',
-                  background: '#151b2b',
-                  border: '1px solid var(--border-active)',
-                  borderRadius: '10px',
-                  padding: '6px',
-                  zIndex: 100,
-                  width: '200px',
-                  boxShadow: '0 10px 30px rgba(0,0,0,0.8)'
-                }}>
+                  {/* Export */}
                   <button
-                    onClick={handleExportExcel}
+                    onClick={() => { setShowMoreMenu(false); handleExportExcel(); }}
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      width: '100%',
-                      padding: '9px 12px',
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#fff',
-                      fontSize: '12.5px',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      borderRadius: '6px'
+                      display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+                      padding: '9px 12px', background: 'transparent', border: 'none', color: '#fff',
+                      fontSize: '12.5px', textAlign: 'left', cursor: 'pointer', borderRadius: '6px'
                     }}
                   >
                     <FileSpreadsheet size={15} color="#10b981" /> Xuất Excel (.xlsx)
                   </button>
                   <button
-                    onClick={handleExportJson}
+                    onClick={() => { setShowMoreMenu(false); handleExportJson(); }}
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      width: '100%',
-                      padding: '9px 12px',
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#fff',
-                      fontSize: '12.5px',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      borderRadius: '6px'
+                      display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+                      padding: '9px 12px', background: 'transparent', border: 'none', color: '#fff',
+                      fontSize: '12.5px', textAlign: 'left', cursor: 'pointer', borderRadius: '6px'
                     }}
                   >
                     <FileJson size={15} color="#38bdf8" /> Xuất Backup (.json)
@@ -728,37 +684,17 @@ export default function HostList({
               )}
             </div>
 
-            <button
-              onClick={onScanSerial}
-              className="btn-secondary"
-              style={{
-                fontSize: '12.5px',
-                padding: '7px 12px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                borderColor: 'rgba(167, 139, 250, 0.4)',
-                color: '#a78bfa',
-                background: 'rgba(167, 139, 250, 0.08)',
-                whiteSpace: 'nowrap',
-                flexShrink: 0
-              }}
-              title={t('hostList.scanSerialTooltip')}
-            >
-              <Usb size={15} />
-              <span>{t('hostList.scanSerial')}</span>
-            </button>
-
-            <button
-              onClick={onQuickSync}
-              disabled={isSyncing}
-              className="btn-primary"
-              style={{ fontSize: '13px', padding: '7px 14px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', flexShrink: 0, opacity: isSyncing ? 0.7 : 1, cursor: isSyncing ? 'wait' : 'pointer' }}
-              title="Đồng bộ ngay (Push & Pull)"
-            >
-              <RefreshCw size={15} className={isSyncing ? "animate-spin" : ""} />
-              <span>{isSyncing ? 'Syncing...' : 'Sync Now'}</span>
-            </button>
+            {isLoggedIn && (
+              <button
+                onClick={onQuickSync}
+                disabled={isSyncing}
+                className="btn-primary"
+                style={{ fontSize: '13px', padding: '7px 11px', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', flexShrink: 0, opacity: isSyncing ? 0.7 : 1, cursor: isSyncing ? 'wait' : 'pointer' }}
+                title="Đồng bộ ngay (Push & Pull)"
+              >
+                <RefreshCw size={16} className={isSyncing ? "animate-spin" : ""} />
+              </button>
+            )}
 
             <button
               onClick={() => onOpenModal(null)}

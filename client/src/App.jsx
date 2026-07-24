@@ -44,6 +44,7 @@ export default function App() {
 
   // Sync state
   const [isSyncing, setIsSyncing] = useState(false);
+  const [loggedInEmail, setLoggedInEmail] = useState('');
 
   const loadAllData = async () => {
     try {
@@ -154,9 +155,14 @@ export default function App() {
 
     const onSyncSuccess = () => setIsSyncing(false);
     const onSyncError = () => setIsSyncing(false);
+    const onAuthSuccess = ({ email }) => setLoggedInEmail(email);
+    const onLoggedOut = () => setLoggedInEmail('');
     
     socket.on('sync:success', onSyncSuccess);
     socket.on('sync:error', onSyncError);
+    socket.on('sync:auth_success', onAuthSuccess);
+    socket.on('sync:logged_out', onLoggedOut);
+    socket.emit('sync:check_auth');
 
     const timer = setTimeout(() => {
       if (autoCheckUpdate) {
@@ -173,6 +179,8 @@ export default function App() {
       socket.off('data:update', onDataUpdate);
       socket.off('sync:success', onSyncSuccess);
       socket.off('sync:error', onSyncError);
+      socket.off('sync:auth_success', onAuthSuccess);
+      socket.off('sync:logged_out', onLoggedOut);
     };
   }, []);
 
@@ -404,6 +412,7 @@ export default function App() {
 
         {activeView === 'hosts' && (
           <HostList
+            isLoggedIn={!!loggedInEmail}
             connections={connections}
             groups={groups}
             onConnectTerminal={handleConnectTerminal}
