@@ -7,6 +7,7 @@ export default function CloudSync({ settings, setSettings, persistData }) {
   const { t, lang } = useI18n();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passphrase, setPassphrase] = useState('');
   const [syncUrl, setSyncUrl] = useState(settings?.syncUrl || 'http://localhost:3000');
   const [loggedInEmail, setLoggedInEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -48,24 +49,30 @@ export default function CloudSync({ settings, setSettings, persistData }) {
 
   const handleLogin = (e) => {
     e.preventDefault();
+    if (!email || !password || !passphrase || !syncUrl) {
+      setError(lang === 'vi' ? 'Vui lòng nhập Email, Mật khẩu, Mật khẩu giải mã và Địa chỉ Server.' : 'Email, Password, Passphrase, and Sync URL are required.');
+      return;
+    }
     setLoading(true);
     setError('');
-    setStatusMessage('Bắt đầu đồng bộ...');
     setStatusType('info');
     
     const formattedUrl = syncUrl.endsWith('/api') ? syncUrl : `${syncUrl.replace(/\/+$/, '')}/api`;
-    socket.emit('sync:login', { email, password, syncUrl: formattedUrl });
+    socket.emit('sync:login', { email, password, passphrase, syncUrl: formattedUrl });
   };
 
   const handleRegister = (e) => {
     e.preventDefault();
+    if (!email || !password || !passphrase || !syncUrl) {
+      setError(lang === 'vi' ? 'Vui lòng nhập Email, Mật khẩu, Mật khẩu giải mã và Địa chỉ Server.' : 'Email, Password, Passphrase, and Sync URL are required.');
+      return;
+    }
     setLoading(true);
     setError('');
-    setStatusMessage('Đang đăng ký...');
     setStatusType('info');
     
     const formattedUrl = syncUrl.endsWith('/api') ? syncUrl : `${syncUrl.replace(/\/+$/, '')}/api`;
-    socket.emit('sync:register', { email, password, syncUrl: formattedUrl });
+    socket.emit('sync:register', { email, password, passphrase, syncUrl: formattedUrl });
   };
 
   const handleLogout = () => {
@@ -163,7 +170,7 @@ export default function CloudSync({ settings, setSettings, persistData }) {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>Email</label>
               <input 
@@ -178,24 +185,51 @@ export default function CloudSync({ settings, setSettings, persistData }) {
                 placeholder="your@email.com"
               />
             </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>
-                {lang === 'vi' ? 'Mật khẩu đồng bộ' : 'Sync Password'}
-              </label>
-              <div style={{ position: 'relative' }}>
-                <Lock size={16} color="var(--text-muted)" style={{ position: 'absolute', top: '10px', left: '12px' }} />
-                <input 
-                  type="password" 
-                  style={{
-                    width: '100%', padding: '8px 12px 8px 36px', borderRadius: '8px',
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    border: '1px solid var(--border-color)', color: '#fff', fontSize: '14px', outline: 'none'
-                  }}
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                />
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>
+                  {lang === 'vi' ? 'Mật khẩu đăng nhập' : 'Login Password'}
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <Lock size={16} color="var(--text-muted)" style={{ position: 'absolute', top: '10px', left: '12px' }} />
+                  <input 
+                    type="password" 
+                    style={{
+                      width: '100%', padding: '8px 12px 8px 36px', borderRadius: '8px',
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      border: '1px solid var(--border-color)', color: '#fff', fontSize: '14px', outline: 'none'
+                    }}
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>
+                  {lang === 'vi' ? 'Mật khẩu giải mã (E2EE Key)' : 'Master Passphrase (E2EE)'}
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <Lock size={16} color="#fbbf24" style={{ position: 'absolute', top: '10px', left: '12px' }} />
+                  <input 
+                    type="password" 
+                    style={{
+                      width: '100%', padding: '8px 12px 8px 36px', borderRadius: '8px',
+                      background: 'rgba(251, 191, 36, 0.05)',
+                      border: '1px solid rgba(251, 191, 36, 0.3)', color: '#fff', fontSize: '14px', outline: 'none'
+                    }}
+                    value={passphrase}
+                    onChange={e => setPassphrase(e.target.value)}
+                    placeholder={lang === 'vi' ? 'Không được quên!' : 'Do not forget!'}
+                  />
+                </div>
               </div>
             </div>
+            
+            <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '-8px' }}>
+              {lang === 'vi' ? '⚠️ Mật khẩu giải mã chỉ dùng ở máy bạn để mã hóa dữ liệu. Server không lưu mật khẩu này.' : '⚠️ The Master Passphrase never leaves your device. It encrypts your vault.'}
+            </p>
           </div>
 
           {error && (
@@ -219,7 +253,7 @@ export default function CloudSync({ settings, setSettings, persistData }) {
             <button 
               type="button" 
               onClick={handleRegister}
-              disabled={loading || !email || !password || !syncUrl}
+              disabled={loading || !email || !password || !passphrase || !syncUrl}
               className="btn-secondary"
               style={{ flex: 1, padding: '10px', fontSize: '14px' }}
             >
@@ -228,7 +262,7 @@ export default function CloudSync({ settings, setSettings, persistData }) {
             
             <button 
               type="submit" 
-              disabled={loading || !email || !password || !syncUrl}
+              disabled={loading || !email || !password || !passphrase || !syncUrl}
               className="btn-primary"
               style={{ flex: 1, padding: '10px', fontSize: '14px' }}
             >

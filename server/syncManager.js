@@ -18,14 +18,14 @@ class SyncManager {
     this.email = null;
   }
 
-  async loginAndSync({ email, password, syncUrl }) {
+  async loginAndSync({ email, password, passphrase, syncUrl }) {
     try {
       this.email = email;
       this.syncUrl = syncUrl;
       this.socket.emit('sync:status', { message: 'Deriving encryption keys...', type: 'info' });
       
-      // 1. Derive key from password
-      this.derivedKey = cryptoUtil.deriveKeyFromPassword(password);
+      // 1. Derive key from passphrase
+      this.derivedKey = cryptoUtil.deriveKeyFromPassword(passphrase);
 
       this.socket.emit('sync:status', { message: 'Authenticating with Sync Server...', type: 'info' });
       
@@ -46,7 +46,7 @@ class SyncManager {
 
       // Save to encrypted file for auto-login
       try {
-        const payload = JSON.stringify({ email, password, syncUrl });
+        const payload = JSON.stringify({ email, password, passphrase, syncUrl });
         const encPayload = cryptoUtil.encryptPassword(payload);
         fs.writeFileSync(AUTH_FILE, encPayload, 'utf8');
       } catch (e) {
@@ -65,14 +65,14 @@ class SyncManager {
     }
   }
 
-  async register({ email, password, syncUrl }) {
+  async register({ email, password, passphrase, syncUrl }) {
     try {
       this.email = email;
       this.syncUrl = syncUrl;
       this.socket.emit('sync:status', { message: 'Generating RSA Keypair (2048-bit)...', type: 'info' });
       
       const { publicKey, privateKey } = cryptoUtil.generateRSAKeyPair();
-      this.derivedKey = cryptoUtil.deriveKeyFromPassword(password);
+      this.derivedKey = cryptoUtil.deriveKeyFromPassword(passphrase);
       
       const encPrivateKey = cryptoUtil.encryptWithSymmetricKey(privateKey, this.derivedKey);
 
@@ -108,9 +108,11 @@ class SyncManager {
 
       // Save to keychain for auto-login
       try {
-        await keytar.setPassword(KEYTAR_SERVICE, KEYTAR_ACCOUNT, JSON.stringify({ email, password, syncUrl }));
+        const payload = JSON.stringify({ email, password, passphrase, syncUrl });
+        const encPayload = cryptoUtil.encryptPassword(payload);
+        fs.writeFileSync(AUTH_FILE, encPayload, 'utf8');
       } catch (e) {
-        console.warn('Failed to save to keychain', e);
+        console.warn('Failed to save to auth file', e);
       }
 
       this.socket.emit('sync:auth_success', { email });
@@ -133,7 +135,7 @@ class SyncManager {
       if (!decPayload || decPayload === encPayload) return false;
 
       const authData = JSON.parse(decPayload);
-      if (authData && authData.email && authData.password) {
+      if (authData && authData.email && authData.password && authData.passphrase) {
         this.socket.emit('sync:status', { message: 'Auto-logging in...', type: 'info' });
         await this.loginAndSync(authData);
         return true;
